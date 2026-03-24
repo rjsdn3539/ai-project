@@ -290,7 +290,7 @@ function InterviewSessionPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
-            onClick={() => navigate('/interview')}
+
             style={{
               background: 'none', border: '1.5px solid var(--border)', borderRadius: 8,
               padding: '6px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)',
