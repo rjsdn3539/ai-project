@@ -1,20 +1,38 @@
-import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useCartStore from '../store/cartStore'
+import useAuthStore from '../store/authStore'
+import * as subscriptionApi from '../api/subscription'
 import Button from '../components/Button'
 
-const BOOK_COLORS = ['#ddd6fe', '#bfdbfe', '#bbf7d0', '#fde68a', '#fecaca', '#c7d2fe']
+const BOOK_COLORS = ['var(--bg-purple)', 'var(--bg-indigo)', 'var(--bg-success)', 'var(--border-warning)', 'var(--border-error)', 'var(--border-indigo)']
 
 function CartPage() {
   const { items, updateItem, removeItem } = useCartStore()
+  const { user } = useAuthStore()
   const [address, setAddress] = useState('')
   const [addrFocused, setAddrFocused] = useState(false)
+  const [addrError, setAddrError] = useState('')
+  const [bookDiscountRate, setBookDiscountRate] = useState(0)
   const navigate = useNavigate()
 
-  const total = items.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0)
+  useEffect(() => {
+    if (user) {
+      subscriptionApi.getMySubscription()
+        .then(({ data }) => setBookDiscountRate(data.data?.bookDiscountRate || 0))
+        .catch(() => {})
+    }
+  }, [user])
+
+  const rawTotal = items.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0)
+  const discountAmount = bookDiscountRate > 0 ? Math.floor(rawTotal * bookDiscountRate / 100) : 0
+  const total = rawTotal - discountAmount
 
   const handleOrder = () => {
-    if (!address.trim()) { alert('배송지를 입력하세요.'); return }
+    const trimmed = address.trim()
+    if (!trimmed) { setAddrError('배송지를 입력해주세요.'); return }
+    if (trimmed.length < 5) { setAddrError('주소를 좀 더 자세히 입력해주세요.'); return }
+    setAddrError('')
     const orderName = items.length === 1
       ? (items[0].title || '도서')
       : `${items[0].title || '도서'} 외 ${items.length - 1}건`
@@ -24,6 +42,7 @@ function CartPage() {
         totalAmount: total,
         type: 'cart',
         items,
+        deliveryAddress: address.trim(),
         backTo: '/cart',
       },
     })
@@ -33,7 +52,7 @@ function CartPage() {
     return (
       <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center' }}>
         <div style={{
-          background: '#fff', borderRadius: 18, padding: '52px 40px',
+          background: 'var(--surface)', borderRadius: 18, padding: '52px 40px',
           boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
         }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🛒</div>
@@ -54,7 +73,7 @@ function CartPage() {
 
       {/* Items */}
       <div style={{
-        background: '#fff', borderRadius: 14, overflow: 'hidden',
+        background: 'var(--surface)', borderRadius: 14, overflow: 'hidden',
         boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)', marginBottom: 16,
       }}>
         {items.map((item, idx) => (
@@ -64,14 +83,14 @@ function CartPage() {
           }}>
             <div style={{
               width: 52, height: 68, borderRadius: 8,
-              background: '#ddd6fe', display: 'flex', alignItems: 'center',
+              background: 'var(--bg-purple)', display: 'flex', alignItems: 'center',
               justifyContent: 'center', fontSize: 24, flexShrink: 0,
             }}>📚</div>
             <div style={{ flex: 1 }}>
               <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>
                 {item.title || '도서'}
               </p>
-              <p style={{ color: '#4f46e5', fontWeight: 700, fontSize: 16 }}>
+              <p style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 16 }}>
                 {((item.price || 0) * item.quantity).toLocaleString()}원
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>
                   (1권 {(item.price || 0).toLocaleString()}원)
@@ -84,7 +103,7 @@ function CartPage() {
                 onClick={() => item.quantity > 1 && updateItem(item.bookId, item.quantity - 1)}
                 style={{
                   width: 30, height: 30, borderRadius: 7, border: '1.5px solid var(--border)',
-                  background: '#fff', cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
+                  background: 'var(--surface)', cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
                   fontWeight: 700, fontSize: 16, fontFamily: 'inherit', color: 'var(--text)',
                   opacity: item.quantity <= 1 ? 0.4 : 1,
                 }}
@@ -96,7 +115,7 @@ function CartPage() {
                 onClick={() => updateItem(item.bookId, item.quantity + 1)}
                 style={{
                   width: 30, height: 30, borderRadius: 7, border: '1.5px solid var(--border)',
-                  background: '#fff', cursor: 'pointer',
+                  background: 'var(--surface)', cursor: 'pointer',
                   fontWeight: 700, fontSize: 16, fontFamily: 'inherit', color: 'var(--text)',
                 }}
               >+</button>
@@ -108,7 +127,7 @@ function CartPage() {
                 color: 'var(--text-muted)', fontSize: 18,
                 borderRadius: 6, transition: 'all 0.15s',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#ef4444' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-error)'; e.currentTarget.style.color = '#ef4444' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >✕</button>
           </div>
@@ -117,12 +136,28 @@ function CartPage() {
 
       {/* Checkout card */}
       <div style={{
-        background: '#fff', borderRadius: 14, padding: '24px',
+        background: 'var(--surface)', borderRadius: 14, padding: '24px',
         boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        {bookDiscountRate > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>상품 금액</span>
+            <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{rawTotal.toLocaleString()}원</span>
+          </div>
+        )}
+        {bookDiscountRate > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600 }}>
+              구독 혜택 할인 ({bookDiscountRate}%)
+            </span>
+            <span style={{ fontSize: 14, color: 'var(--success)', fontWeight: 700 }}>
+              -{discountAmount.toLocaleString()}원
+            </span>
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderTop: bookDiscountRate > 0 ? '1px solid var(--border-light)' : 'none', paddingTop: bookDiscountRate > 0 ? 12 : 0 }}>
           <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>총 결제금액</span>
-          <span style={{ fontWeight: 800, fontSize: 24, color: '#4f46e5' }}>
+          <span style={{ fontWeight: 800, fontSize: 24, color: 'var(--primary)' }}>
             {total.toLocaleString()}
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>원</span>
           </span>
@@ -133,19 +168,24 @@ function CartPage() {
         </label>
         <input
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="예: 서울시 강남구 테헤란로 123"
+          onChange={(e) => { setAddress(e.target.value); setAddrError('') }}
+          placeholder="예: 서울시 강남구 테헤란로 123, 456동 789호"
           onFocus={() => setAddrFocused(true)}
           onBlur={() => setAddrFocused(false)}
           style={{
             width: '100%', padding: '11px 13px',
-            border: `1.5px solid ${addrFocused ? '#4f46e5' : 'var(--border)'}`,
-            borderRadius: 9, marginBottom: 16, fontSize: 14,
-            boxSizing: 'border-box', color: 'var(--text)', background: '#fff',
+            border: `1.5px solid ${addrError ? '#ef4444' : addrFocused ? '#4f46e5' : 'var(--border)'}`,
+            borderRadius: 9, marginBottom: addrError ? 6 : 16, fontSize: 14,
+            boxSizing: 'border-box', color: 'var(--text)', background: 'var(--surface)',
             outline: 'none', fontFamily: 'inherit', transition: 'all 0.15s',
-            boxShadow: addrFocused ? '0 0 0 3px rgba(79,70,229,0.08)' : 'none',
+            boxShadow: addrError ? '0 0 0 3px rgba(239,68,68,0.1)' : addrFocused ? '0 0 0 3px rgba(79,70,229,0.08)' : 'none',
           }}
         />
+        {addrError && (
+          <p style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, marginBottom: 14 }}>
+            ⚠ {addrError}
+          </p>
+        )}
         <Button fullWidth size="lg" onClick={handleOrder}>
           결제하기 →
         </Button>

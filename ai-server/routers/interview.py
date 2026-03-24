@@ -4,6 +4,7 @@ from schemas.interview_schema import (
     BatchQuestionsRequest, BatchQuestionsResponse, QuestionItem,
     AnalyzeAnswerRequest, AnalyzeAnswerResponse,
     ReportSummaryRequest, ReportSummaryResponse,
+    ParseJobPostingRequest, ParseJobPostingResponse,
 )
 from services import interview_service
 
@@ -63,6 +64,16 @@ def analyze_answer(req: AnalyzeAnswerRequest):
         return AnalyzeAnswerResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"답변 분석 실패: {str(e)}")
+
+
+@router.post("/job-posting/parse", response_model=ParseJobPostingResponse)
+def parse_job_posting(req: ParseJobPostingRequest):
+    """채용공고 URL에서 회사명·직무·내용 자동 추출 (Java 백엔드 전용)"""
+    try:
+        result = interview_service.parse_job_posting(url=req.url, content=req.content)
+        return ParseJobPostingResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"채용공고 파싱 실패: {str(e)}")
 
 
 @router.post("/report/summary", response_model=ReportSummaryResponse)

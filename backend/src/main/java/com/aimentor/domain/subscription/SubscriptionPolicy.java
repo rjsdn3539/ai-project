@@ -33,14 +33,22 @@ public class SubscriptionPolicy {
     // 최대 면접 질문 수
     public static int maxQuestionCount(SubscriptionTier tier) {
         return switch (tier) {
-            case FREE, STANDARD -> 3;
-            case PRO, PREMIUM -> 10;
+            case FREE, STANDARD, PRO, PREMIUM -> 10;
         };
     }
 
     // 피드백 점수 공개 여부 (FREE는 요약만)
     public static boolean isFeedbackScoreVisible(SubscriptionTier tier) {
         return tier != SubscriptionTier.FREE;
+    }
+
+    // 도서 할인율 (%) - PRO: 5%, PREMIUM: 10%
+    public static int bookDiscountRate(SubscriptionTier tier) {
+        return switch (tier) {
+            case PRO -> 5;
+            case PREMIUM -> 10;
+            default -> 0;
+        };
     }
 
     private SubscriptionPolicy() {}

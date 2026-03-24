@@ -25,6 +25,22 @@ const useAuthStore = create((set) => {
     set({ user, accessToken })
   },
 
+  updateName: (name) => {
+    set((state) => {
+      const user = { ...state.user, name }
+      localStorage.setItem('user', JSON.stringify(user))
+      return { user }
+    })
+  },
+
+  updateSubscriptionTier: (subscriptionTier) => {
+    set((state) => {
+      const user = { ...state.user, subscriptionTier }
+      localStorage.setItem('user', JSON.stringify(user))
+      return { user }
+    })
+  },
+
   logout: async () => {
     const refreshToken = localStorage.getItem('refreshToken')
     try { await authApi.logout(refreshToken) } catch {}

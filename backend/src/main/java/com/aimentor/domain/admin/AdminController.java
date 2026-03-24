@@ -6,7 +6,10 @@ import com.aimentor.domain.admin.AdminService.BookSummary;
 import com.aimentor.domain.admin.AdminService.ChangeRoleRequest;
 import com.aimentor.domain.admin.AdminService.ChangeSubscriptionRequest;
 import com.aimentor.domain.admin.AdminService.DashboardData;
+import com.aimentor.domain.admin.AdminService.OrderSummary;
 import com.aimentor.domain.admin.AdminService.SessionSummary;
+import com.aimentor.domain.admin.AdminService.UpdateDeliveryRequest;
+import com.aimentor.domain.admin.AdminService.UpdatePaymentStatusRequest;
 import com.aimentor.domain.admin.AdminService.UserSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -121,6 +124,38 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable Long id) {
         adminService.deleteBook(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Orders (결제 관리) ─────────────────────────────────────────────────────
+
+    @GetMapping("/orders")
+    public ApiResponse<PageResult<OrderSummary>> orders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String paymentStatus) {
+        return ApiResponse.success(PageResult.of(adminService.getOrders(page, size, paymentStatus)));
+    }
+
+    @PatchMapping("/orders/{id}/payment")
+    public ApiResponse<OrderSummary> updatePaymentStatus(@PathVariable Long id,
+                                                         @RequestBody UpdatePaymentStatusRequest req) {
+        return ApiResponse.success(adminService.updatePaymentStatus(id, req.paymentStatus()));
+    }
+
+    // ── Deliveries (배송 관리) ─────────────────────────────────────────────────
+
+    @GetMapping("/deliveries")
+    public ApiResponse<PageResult<OrderSummary>> deliveries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String deliveryStatus) {
+        return ApiResponse.success(PageResult.of(adminService.getDeliveries(page, size, deliveryStatus)));
+    }
+
+    @PatchMapping("/orders/{id}/delivery")
+    public ApiResponse<OrderSummary> updateDelivery(@PathVariable Long id,
+                                                    @RequestBody UpdateDeliveryRequest req) {
+        return ApiResponse.success(adminService.updateDelivery(id, req.deliveryStatus(), req.trackingNumber()));
     }
 
     // ── Util ───────────────────────────────────────────────────────────────────

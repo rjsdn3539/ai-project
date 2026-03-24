@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import * as authApi from '../api/auth'
 import Input from '../components/Input'
@@ -52,24 +52,24 @@ function RegisterPage() {
             fontSize: 22, boxShadow: '0 4px 14px rgba(79,70,229,0.35)',
           }}>🤖</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>AI 면접 플랫폼</div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>Interview Assistant</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>AI 면접 플랫폼</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interview Assistant</div>
           </div>
         </div>
 
         <div style={{
-          background: '#fff', borderRadius: 16, padding: '36px',
+          background: 'var(--surface)', borderRadius: 16, padding: '36px',
           boxShadow: '0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)',
         }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>회원가입</h1>
-          <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>계정을 만들고 AI 면접을 무료로 시작하세요</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>회원가입</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>계정을 만들고 AI 면접을 무료로 시작하세요</p>
 
           {errors.submit && (
             <div style={{
-              background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
+              background: 'var(--bg-error)', border: '1px solid var(--border-error)', borderRadius: 10,
               padding: '12px 16px', marginBottom: 18,
               display: 'flex', alignItems: 'center', gap: 8,
-              color: '#dc2626', fontSize: 13,
+              color: 'var(--danger)', fontSize: 13,
             }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
@@ -91,9 +91,9 @@ function RegisterPage() {
           </form>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748b' }}>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
           이미 계정이 있으신가요?{' '}
-          <Link to="/auth/login" style={{ color: '#4f46e5', fontWeight: 600 }}>로그인</Link>
+          <Link to="/auth/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>로그인</Link>
         </p>
       </div>
     </div>

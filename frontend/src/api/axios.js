@@ -21,7 +21,7 @@ const clearAuth = () => {
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
   window.dispatchEvent(new CustomEvent('auth:cleared'))
-  const publicPaths = ['/home', '/auth/login', '/auth/register', '/books']
+  const publicPaths = ['/home', '/auth/login', '/auth/register', '/books', '/subscription', '/faq']
   const isPublic = publicPaths.some(p => window.location.pathname.startsWith(p))
   if (!isPublic) {
     window.location.href = '/auth/login'

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(netstat:*)",
+      "Bash(cmd.exe /c \"taskkill /PID 20196 /F\")",
+      "Bash(sleep:*)",
+      "Read(//c/Users/M/.config/**)",
+      "Read(//c/Users/M/AppData/Roaming/JetBrains/**)",
+      "mcp__ide__getDiagnostics",
+      "Bash(find:*)"
+    ]
+  }
+}

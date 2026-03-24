@@ -1,25 +1,17 @@
 package com.aimentor.domain.interview.dto.request;
 
-import com.aimentor.domain.interview.entity.InterviewMode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-/**
- * Validates the input required to start an interview session.
- */
 public record StartInterviewSessionRequest(
-        @NotBlank(message = "Interview title is required.")
-        @Size(max = 100, message = "Interview title must be 100 characters or fewer.")
+        @NotBlank(message = "세션 제목은 필수입니다.")
+        @Size(max = 100, message = "세션 제목은 100자 이하여야 합니다.")
         String title,
 
-        @NotBlank(message = "Position title is required.")
-        @Size(max = 100, message = "Position title must be 100 characters or fewer.")
+        @NotBlank(message = "직무명은 필수입니다.")
+        @Size(max = 100, message = "직무명은 100자 이하여야 합니다.")
         String positionTitle,
-
-        InterviewMode mode,
-
-        Long applicationDocumentId,
 
         Long resumeId,
 
@@ -27,7 +19,7 @@ public record StartInterviewSessionRequest(
 
         Long jobPostingId,
 
-        @Positive(message = "Question count must be at least 1.")
+        @Positive(message = "질문 개수는 1 이상이어야 합니다.")
         Integer questionCount
 ) {
 }

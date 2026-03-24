@@ -12,6 +12,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,12 +21,15 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
+    private final ProfileDocumentTextExtractor documentTextExtractor;
 
     public ResumeService(ResumeRepository resumeRepository, UserRepository userRepository,
-                         SubscriptionService subscriptionService) {
+                         SubscriptionService subscriptionService,
+                         ProfileDocumentTextExtractor documentTextExtractor) {
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.subscriptionService = subscriptionService;
+        this.documentTextExtractor = documentTextExtractor;
     }
 
     @Transactional
@@ -35,6 +39,18 @@ public class ResumeService {
                 .user(user)
                 .title(request.title())
                 .content(request.content())
+                .build();
+        return toResponse(resumeRepository.save(resume));
+    }
+
+    @Transactional
+    public ResumeResponse createFromFile(Long userId, String title, MultipartFile file) {
+        User user = getUser(userId);
+        String extractedContent = documentTextExtractor.extract(file);
+        Resume resume = Resume.builder()
+                .user(user)
+                .title(title)
+                .content(extractedContent)
                 .build();
         return toResponse(resumeRepository.save(resume));
     }

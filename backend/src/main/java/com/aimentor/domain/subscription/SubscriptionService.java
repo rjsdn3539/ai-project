@@ -42,7 +42,9 @@ public class SubscriptionService {
                 SubscriptionPolicy.dailyLearningLimit(tier),
                 SubscriptionPolicy.profileDocLimit(tier),
                 SubscriptionPolicy.maxQuestionCount(tier),
-                SubscriptionPolicy.isFeedbackScoreVisible(tier)
+                SubscriptionPolicy.isFeedbackScoreVisible(tier),
+                SubscriptionPolicy.bookDiscountRate(tier),
+                user.getPendingDowngradeTier()
         );
     }
 
@@ -52,6 +54,27 @@ public class SubscriptionService {
         LocalDateTime expiresAt = tier == SubscriptionTier.FREE ? null
                 : LocalDateTime.now().plusMonths(durationMonths);
         user.changeSubscription(tier, expiresAt);
+    }
+
+    @Transactional
+    public void scheduleDowngrade(Long userId, SubscriptionTier targetTier) {
+        User user = getUser(userId);
+        SubscriptionTier currentTier = user.getEffectiveTier();
+
+        if (targetTier.ordinal() >= currentTier.ordinal()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_DOWNGRADE",
+                    "현재 플랜보다 낮은 플랜으로만 다운그레이드할 수 있습니다.");
+        }
+
+        if (user.getSubscriptionExpiresAt() == null) {
+            // 만료일이 없는 구독(무기한)은 즉시 다운그레이드 적용
+            LocalDateTime expiresAt = targetTier == SubscriptionTier.FREE ? null
+                    : LocalDateTime.now().plusMonths(1);
+            user.changeSubscription(targetTier, expiresAt);
+        } else {
+            // 만료일이 있는 경우 결제 기간 종료 시 적용
+            user.scheduleDowngrade(targetTier);
+        }
     }
 
     public void checkInterviewLimit(Long userId) {
@@ -82,9 +105,19 @@ public class SubscriptionService {
         int maxAllowed = SubscriptionPolicy.maxQuestionCount(tier);
 
         if (requested == null || requested <= 0) {
-            return 3;
+            return 5;
         }
         return Math.min(requested, maxAllowed);
+    }
+
+    @Transactional
+    public void cancelDowngrade(Long userId) {
+        User user = getUser(userId);
+        if (user.getPendingDowngradeTier() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "NO_PENDING_DOWNGRADE",
+                    "예약된 다운그레이드가 없습니다.");
+        }
+        user.scheduleDowngrade(null);
     }
 
     public void checkProfileDocLimit(Long userId, long currentCount) {

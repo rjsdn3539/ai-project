@@ -11,3 +11,9 @@ export const logout = (refreshToken) =>
 
 export const refreshToken = (token) =>
   api.post('/api/v1/auth/refresh', { refreshToken: token })
+
+export const updateProfile = (name) =>
+  api.patch('/api/v1/users/me', { name })
+
+export const changePassword = (currentPassword, newPassword) =>
+  api.patch('/api/v1/users/me/password', { currentPassword, newPassword })

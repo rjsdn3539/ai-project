@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import * as bookApi from '../api/book'
 import useCartStore from '../store/cartStore'
+import useAuthStore from '../store/authStore'
+import { getBookReviews, saveBookReviews } from '../utils/bookReviews'
 
-const BOOK_COLORS   = ['#ddd6fe', '#bfdbfe', '#bbf7d0', '#fde68a', '#fecaca', '#c7d2fe']
-const BOOK_ICON_BG  = ['#7c6af0', '#0ea5e9', '#2da65e', '#e09420', '#e05252', '#4f46e5']
+const BOOK_COLORS   = ['var(--bg-purple)', 'var(--bg-indigo)', 'var(--bg-success)', 'var(--border-warning)', 'var(--border-error)', 'var(--border-indigo)']
+const BOOK_ICON_BG  = ['#7c6af0', '#0ea5e9', 'var(--success)', 'var(--warning)', '#e05252', '#4f46e5']
 
 // Mock enriched data — in production these fields would come from the API
 const BOOK_META = {
@@ -53,16 +55,82 @@ const DEFAULT_META = {
   toc: ['Chapter 1', 'Chapter 2', 'Chapter 3'],
 }
 
+
+// ── 별점 표시 컴포넌트 ────────────────────────────────────────────────────────
+function Stars({ rating, size = 16, interactive = false, onChange }) {
+  const [hovered, setHovered] = useState(0)
+  const display = interactive ? (hovered || rating) : rating
+  return (
+    <div style={{ display: 'flex', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <span
+          key={n}
+          onClick={() => interactive && onChange?.(n)}
+          onMouseEnter={() => interactive && setHovered(n)}
+          onMouseLeave={() => interactive && setHovered(0)}
+          style={{
+            fontSize: size,
+            cursor: interactive ? 'pointer' : 'default',
+            color: n <= display ? '#f5c518' : 'var(--border)',
+            transition: 'color 0.1s',
+            lineHeight: 1,
+            userSelect: 'none',
+          }}
+        >★</span>
+      ))}
+    </div>
+  )
+}
+
 function BookDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addItem, items } = useCartStore()
+  const { user } = useAuthStore()
 
   const [book, setBook]       = useState(null)
   const [loading, setLoading] = useState(true)
   const [qty, setQty]         = useState(1)
   const [adding, setAdding]   = useState(false)
   const [added, setAdded]     = useState(false)
+  const [loginToast, setLoginToast] = useState(false)
+
+  // ── 리뷰 상태 ──
+  const [reviews, setReviews]         = useState([])
+  const [myRating, setMyRating]       = useState(0)
+  const [myText, setMyText]           = useState('')
+  const [submitting, setSubmitting]   = useState(false)
+  const [reviewError, setReviewError] = useState('')
+
+  useEffect(() => {
+    if (id) setReviews(getBookReviews(id))
+  }, [id])
+
+  const alreadyReviewed = reviews.some((r) => r.userId === user?.id)
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+    : null
+
+  const handleSubmitReview = () => {
+    if (myRating === 0) { setReviewError('별점을 선택해주세요.'); return }
+    if (myText.trim().length < 10) { setReviewError('리뷰를 10자 이상 작성해주세요.'); return }
+    setSubmitting(true)
+    const newReview = {
+      id: Date.now().toString(),
+      userId: user?.id,
+      author: user?.name || '익명',
+      rating: myRating,
+      text: myText.trim(),
+      date: new Date().toISOString().slice(0, 10),
+    }
+    const updated = [newReview, ...reviews]
+    saveBookReviews(id, updated)
+    setReviews(updated)
+    setMyRating(0)
+    setMyText('')
+    setReviewError('')
+    setSubmitting(false)
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -84,6 +152,11 @@ function BookDetailPage() {
   }, [id])
 
   const handleAddToCart = () => {
+    if (!user) {
+      setLoginToast(true)
+      setTimeout(() => setLoginToast(false), 3000)
+      return
+    }
     setAdding(true)
     try {
       addItem(book.id, qty, { title: book.title, author: book.author, price: book.price })
@@ -122,6 +195,28 @@ function BookDetailPage() {
 
   return (
     <div style={{ width: '100%' }}>
+
+      {/* 로그인 필요 토스트 */}
+      {loginToast && (
+        <div style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          background: '#1e1e2e', color: '#fff', borderRadius: 14,
+          padding: '14px 24px', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: 14,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
+        }}>
+          <span style={{ fontSize: 18 }}>🔒</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>로그인 후 이용 가능합니다</span>
+          <button
+            onClick={() => navigate('/auth/login')}
+            style={{
+              background: 'var(--primary)', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >로그인</button>
+        </div>
+      )}
 
       {/* Back */}
       <button
@@ -189,7 +284,7 @@ function BookDetailPage() {
 
           {/* Title block */}
           <div style={{
-            background: '#fff', borderRadius: 20,
+            background: 'var(--surface)', borderRadius: 20,
             border: '1.5px solid var(--border-light)',
             padding: '32px 36px',
             boxShadow: 'var(--shadow-sm)',
@@ -204,7 +299,7 @@ function BookDetailPage() {
                 { label: '출판사', value: meta.publisher },
                 { label: '출간일', value: meta.published },
                 { label: '페이지', value: `${meta.pages}p` },
-                { label: '재고', value: isSoldOut ? '품절' : `${book.stock}권`, color: isSoldOut ? '#e05252' : '#2da65e' },
+                { label: '재고', value: isSoldOut ? '품절' : `${book.stock}권`, color: isSoldOut ? '#e05252' : 'var(--success)' },
               ].map(({ label, value, color }) => (
                 <div key={label}>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
@@ -218,7 +313,7 @@ function BookDetailPage() {
 
           {/* Purchase block */}
           <div style={{
-            background: '#fff', borderRadius: 20,
+            background: 'var(--surface)', borderRadius: 20,
             border: '1.5px solid var(--border-light)',
             padding: '28px 36px',
             boxShadow: 'var(--shadow-sm)',
@@ -247,7 +342,7 @@ function BookDetailPage() {
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
                   disabled={qty <= 1}
                   style={{
-                    width: 44, height: 44, border: 'none', background: qty <= 1 ? 'var(--bg)' : '#fff',
+                    width: 44, height: 44, border: 'none', background: qty <= 1 ? 'var(--bg)' : 'var(--surface)',
                     fontSize: 18, cursor: qty <= 1 ? 'not-allowed' : 'pointer',
                     color: qty <= 1 ? 'var(--text-muted)' : 'var(--text)',
                     transition: 'background 0.15s', fontFamily: 'inherit',
@@ -263,7 +358,7 @@ function BookDetailPage() {
                   disabled={qty >= (book.stock || 99) || isSoldOut}
                   style={{
                     width: 44, height: 44, border: 'none',
-                    background: qty >= book.stock ? 'var(--bg)' : '#fff',
+                    background: qty >= book.stock ? 'var(--bg)' : 'var(--surface)',
                     fontSize: 18, cursor: qty >= book.stock ? 'not-allowed' : 'pointer',
                     color: qty >= book.stock ? 'var(--text-muted)' : 'var(--text)',
                     transition: 'background 0.15s', fontFamily: 'inherit',
@@ -302,14 +397,14 @@ function BookDetailPage() {
                 <button
                   onClick={() => navigate('/cart')}
                   style={{
-                    padding: '16px 22px', background: '#fff',
+                    padding: '16px 22px', background: 'var(--surface)',
                     color: 'var(--primary)', border: '2px solid var(--primary-border)',
                     borderRadius: 14, fontSize: 14, fontWeight: 700,
                     cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'all 0.15s', whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary-light)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface)' }}
                 >
                   장바구니 보기 →
                 </button>
@@ -318,15 +413,15 @@ function BookDetailPage() {
 
             {added && (
               <div style={{
-                marginTop: 12, padding: '10px 16px', background: '#f0fdf4',
-                borderRadius: 10, border: '1px solid #bbf7d0',
+                marginTop: 12, padding: '10px 16px', background: 'var(--bg-success)',
+                borderRadius: 10, border: '1px solid var(--border-success)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <span style={{ fontSize: 13, color: '#2da65e', fontWeight: 600 }}>
+                <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>
                   장바구니에 {qty}권 담겼어요!
                 </span>
                 <button onClick={() => navigate('/cart')}
-                  style={{ background: 'none', border: 'none', color: '#2da65e', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ background: 'none', border: 'none', color: 'var(--success)', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                   바로 가기 →
                 </button>
               </div>
@@ -337,10 +432,11 @@ function BookDetailPage() {
 
       {/* Table of contents */}
       <div style={{
-        background: '#fff', borderRadius: 20,
+        background: 'var(--surface)', borderRadius: 20,
         border: '1.5px solid var(--border-light)',
         padding: '32px 36px',
         boxShadow: 'var(--shadow-sm)',
+        marginBottom: 24,
       }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', marginBottom: 20 }}>목차</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
@@ -361,6 +457,183 @@ function BookDetailPage() {
           ))}
         </div>
       </div>
+
+      {/* ── 리뷰 섹션 ── */}
+      <div style={{
+        background: 'var(--surface)', borderRadius: 20,
+        border: '1.5px solid var(--border-light)',
+        padding: '32px 36px',
+        boxShadow: 'var(--shadow-sm)',
+      }}>
+        {/* 헤더 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', margin: 0 }}>독자 리뷰</h2>
+          {avgRating && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 32, fontWeight: 900, color: '#f5c518', lineHeight: 1 }}>{avgRating}</span>
+                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ 5</span>
+              </div>
+              <div>
+                <Stars rating={Math.round(Number(avgRating))} size={18} />
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                  리뷰 {reviews.length}개
+                </p>
+              </div>
+            </div>
+          )}
+          {/* 별점 분포 바 */}
+          {reviews.length > 0 && (
+            <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 160 }}>
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = reviews.filter((r) => r.rating === star).length
+                const pct = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0
+                return (
+                  <div key={star} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 14, textAlign: 'right' }}>{star}</span>
+                    <span style={{ fontSize: 10, color: '#f5c518' }}>★</span>
+                    <div style={{ flex: 1, height: 5, background: 'var(--bg)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', width: `${pct}%`,
+                        background: '#f5c518', borderRadius: 99,
+                        transition: 'width 0.4s ease',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 22 }}>{count}개</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 리뷰 목록 */}
+        {reviews.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
+            {reviews.map((r) => (
+              <div key={r.id} style={{
+                padding: '18px 20px', background: 'var(--bg)',
+                borderRadius: 14, border: '1px solid var(--border-light)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${iconColor}, ${iconColor}90)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 800, color: '#fff', flexShrink: 0,
+                  }}>
+                    {r.author[0]}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{r.author}</span>
+                      <Stars rating={r.rating} size={13} />
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.date}</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75, margin: 0 }}>
+                  {r.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '28px 0', marginBottom: 24 }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>💬</div>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>아직 리뷰가 없어요. 첫 리뷰를 남겨보세요!</p>
+          </div>
+        )}
+
+        {/* 리뷰 작성 폼 */}
+        {!user ? (
+          <div style={{
+            padding: '20px 24px', borderRadius: 14,
+            background: 'var(--bg)', border: '1.5px dashed var(--border)',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 12 }}>
+              리뷰를 작성하려면 로그인이 필요해요
+            </p>
+            <button
+              onClick={() => navigate('/auth/login')}
+              style={{
+                padding: '10px 24px', borderRadius: 10, border: 'none',
+                background: 'var(--primary)', color: '#fff',
+                fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >로그인하기</button>
+          </div>
+        ) : alreadyReviewed ? (
+          <div style={{
+            padding: '16px 20px', borderRadius: 12,
+            background: 'var(--bg-success)', border: '1px solid var(--border-success)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 18 }}>✅</span>
+            <p style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600, margin: 0 }}>
+              이미 리뷰를 작성했어요. 감사합니다!
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            padding: '24px', borderRadius: 16,
+            background: 'var(--bg)', border: '1.5px solid var(--border)',
+          }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>
+              📝 리뷰 작성
+            </h3>
+            {/* 별점 선택 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', minWidth: 40 }}>별점</span>
+              <Stars rating={myRating} size={28} interactive onChange={setMyRating} />
+              {myRating > 0 && (
+                <span style={{ fontSize: 13, color: '#f5c518', fontWeight: 700 }}>
+                  {['', '별로예요', '그저 그래요', '괜찮아요', '좋아요', '최고예요!'][myRating]}
+                </span>
+              )}
+            </div>
+            {/* 텍스트 입력 */}
+            <textarea
+              value={myText}
+              onChange={(e) => { setMyText(e.target.value); setReviewError('') }}
+              placeholder="이 책에 대한 솔직한 리뷰를 남겨주세요. (10자 이상)"
+              rows={4}
+              style={{
+                width: '100%', borderRadius: 12, border: '1.5px solid var(--border)',
+                padding: '12px 14px', fontSize: 14, lineHeight: 1.6,
+                fontFamily: 'inherit', resize: 'vertical',
+                background: 'var(--surface)', color: 'var(--text)',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+            />
+            {reviewError && (
+              <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 6 }}>{reviewError}</p>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {myText.length}자
+              </span>
+              <button
+                onClick={handleSubmitReview}
+                disabled={submitting}
+                style={{
+                  padding: '10px 24px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+                  color: '#fff', fontWeight: 700, fontSize: 14,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', opacity: submitting ? 0.7 : 1,
+                }}
+              >
+                리뷰 등록
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }

@@ -1,18 +1,32 @@
-import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import useCartStore from '../store/cartStore'
+import { AchievementToastProvider } from './AchievementToast'
 
-const NAV = [
+const NAV_MAIN = [
   { to: '/home',            icon: '🏠', label: '홈',         auth: false },
   { to: '/interview/setup', icon: '🎤', label: '면접 시작',  auth: true  },
   { to: '/learning',        icon: '📚', label: 'AI 학습',    auth: true  },
-  { to: '/dashboard',       icon: '📊', label: '내 통계',    auth: true  },
   { to: '/books',           icon: '🛍', label: '도서 스토어', auth: false },
-  { to: '/subscription',    icon: '✦',  label: '구독 플랜',  auth: true  },
+  { to: '/subscription',    icon: '✦',  label: '구독 플랜',  auth: false },
 ]
 
-const TIER_COLOR = { FREE: '#b3a99e', STANDARD: '#7c6af0', PRO: '#9b5de5', PREMIUM: '#e09420' }
+const NAV_GUEST = [
+  { to: '/faq', icon: '❓', label: 'FAQ' },
+]
+
+const PROFILE_MENU = [
+  { to: '/profile',           icon: '👤', label: '내 프로필' },
+  { to: '/interview/history', icon: '📋', label: '면접 기록' },
+  { to: '/schedule',          icon: '📅', label: '면접 일정' },
+  { to: '/dashboard',         icon: '📊', label: '내 통계'   },
+  { to: '/achievements',      icon: '🏆', label: '업적 & 뱃지' },
+  { to: '/faq',               icon: '❓', label: 'FAQ'        },
+  { to: '/inquiry',           icon: '✉️', label: '문의하기'   },
+]
+
+const TIER_COLOR = { FREE: '#b3a99e', STANDARD: '#7c6af0', PRO: '#9b5de5', PREMIUM: 'var(--warning)' }
 const TIER_BG    = { FREE: 'rgba(179,169,158,0.15)', STANDARD: 'rgba(124,106,240,0.2)', PRO: 'rgba(155,93,229,0.2)', PREMIUM: 'rgba(224,148,32,0.2)' }
 
 const navLinkStyle = ({ isActive }) => ({
@@ -35,7 +49,21 @@ function Layout() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
   const tier = user?.subscriptionTier || 'FREE'
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    localStorage.setItem('theme', next)
+    document.documentElement.setAttribute('data-theme', next)
+  }
+
+  // 초기 테마 적용
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [])
 
   const handleLogout = async () => {
     setLoggingOut(true)
@@ -44,6 +72,7 @@ function Layout() {
   }
 
   return (
+    <AchievementToastProvider>
     <div style={{ display: 'flex', minHeight: '100vh' }}>
 
       {/* 로그아웃 확인 모달 */}
@@ -59,7 +88,7 @@ function Layout() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#fff', borderRadius: 20, padding: '36px 40px',
+              background: 'var(--surface)', borderRadius: 20, padding: '36px 40px',
               width: 360, boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
               animation: 'fadeIn 0.18s ease', textAlign: 'center',
             }}
@@ -111,6 +140,7 @@ function Layout() {
         display: 'flex', flexDirection: 'column',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
         borderRight: '1px solid rgba(255,255,255,0.04)',
+        overflow: 'visible',
       }}>
         {/* Logo */}
         <div style={{
@@ -118,29 +148,48 @@ function Layout() {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           background: 'linear-gradient(160deg, rgba(124,106,240,0.18) 0%, rgba(14,165,233,0.08) 100%)',
         }}>
-          <div onClick={() => navigate('/home')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 12,
-              background: 'linear-gradient(135deg, #7c6af0 0%, #0ea5e9 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, flexShrink: 0, boxShadow: '0 4px 14px rgba(124,106,240,0.5)',
-            }}>🤖</div>
-            <div>
-              <div style={{ color: '#f5f0eb', fontWeight: 700, fontSize: 15, lineHeight: 1.3 }}>AI 면접</div>
-              <div style={{ color: '#5c5248', fontSize: 11, fontWeight: 500 }}>플랫폼</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div onClick={() => navigate('/home')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: 'linear-gradient(135deg, #7c6af0 0%, #0ea5e9 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, flexShrink: 0, boxShadow: '0 4px 14px rgba(124,106,240,0.5)',
+              }}>🤖</div>
+              <div>
+                <div style={{ color: '#f5f0eb', fontWeight: 700, fontSize: 15, lineHeight: 1.3 }}>AI 면접</div>
+                <div style={{ color: '#5c5248', fontSize: 11, fontWeight: 500 }}>플랫폼</div>
+              </div>
             </div>
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: theme === 'dark' ? 'rgba(157,141,248,0.15)' : 'rgba(255,255,255,0.06)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, flexShrink: 0,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = theme === 'dark' ? 'rgba(157,141,248,0.25)' : 'rgba(255,255,255,0.14)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = theme === 'dark' ? 'rgba(157,141,248,0.15)' : 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
           </div>
         </div>
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: '#4a413b', letterSpacing: '0.1em', padding: '4px 12px 8px' }}>MAIN</div>
-          {NAV.filter(({ auth }) => !auth || accessToken).map(({ to, icon, label }) => (
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#4a413b', letterSpacing: '0.1em', padding: '4px 12px 8px' }}>INTERVIEW</div>
+          {NAV_MAIN.filter(({ auth }) => !auth || accessToken).map(({ to, icon, label }) => (
             <NavLink key={to} to={to} style={navLinkStyle} end={to === '/home'}>
               <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{icon}</span>
               {label}
             </NavLink>
           ))}
+
           {accessToken && (
             <NavLink to="/cart" style={navLinkStyle}>
               <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>🛒</span>
@@ -153,12 +202,24 @@ function Layout() {
             </NavLink>
           )}
 
+          {!accessToken && (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#4a413b', letterSpacing: '0.1em', padding: '14px 12px 8px' }}>SUPPORT</div>
+              {NAV_GUEST.map(({ to, icon, label }) => (
+                <NavLink key={to} to={to} style={navLinkStyle}>
+                  <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{icon}</span>
+                  {label}
+                </NavLink>
+              ))}
+            </>
+          )}
+
           {user?.role === 'ADMIN' && (
             <>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#4a413b', letterSpacing: '0.1em', padding: '14px 12px 8px' }}>ADMIN</div>
               <NavLink to="/admin" style={({ isActive }) => ({
                 ...navLinkStyle({ isActive }),
-                color: isActive ? '#fde68a' : '#fbbf24',
+                color: isActive ? '#fbbf24' : '#fbbf24',
                 background: isActive ? 'rgba(251,191,36,0.12)' : 'transparent',
                 border: isActive ? '1px solid rgba(251,191,36,0.2)' : '1px solid transparent',
               })}>
@@ -170,10 +231,51 @@ function Layout() {
         </nav>
 
         {/* User */}
-        <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}>
           {accessToken ? (
             <>
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px', marginBottom: 8 }}>
+              {/* 드롭업 메뉴 */}
+              {showProfileMenu && (
+                <div
+                  style={{
+                    position: 'absolute', bottom: '100%', left: 10, right: 10,
+                    background: '#1e1a18', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 10, padding: '6px', zIndex: 100,
+                    boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
+                    marginBottom: 4,
+                  }}
+                >
+                  {PROFILE_MENU.map(({ to, icon, label }) => (
+                    <div
+                      key={to}
+                      onClick={() => { navigate(to); setShowProfileMenu(false) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 9,
+                        padding: '9px 10px', borderRadius: 7, cursor: 'pointer',
+                        color: '#8c7f74', fontSize: 13, transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#f0ebe4' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8c7f74' }}
+                    >
+                      <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>{icon}</span>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 프로필 카드 */}
+              <div
+                onClick={() => setShowProfileMenu((v) => !v)}
+                style={{
+                  background: showProfileMenu ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 10, padding: '12px', marginBottom: 8,
+                  cursor: 'pointer', transition: 'all 0.15s', userSelect: 'none',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseLeave={(e) => { if (!showProfileMenu) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
                   <div style={{
                     width: 34, height: 34, borderRadius: '50%',
@@ -188,7 +290,7 @@ function Layout() {
                     <div style={{ color: '#5c5248', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</div>
                   </div>
                 </div>
-                <div onClick={() => navigate('/subscription')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', background: TIER_BG[tier], color: TIER_COLOR[tier], borderRadius: 99, fontSize: 11, fontWeight: 700, padding: '3px 9px' }}>
+                <div onClick={(e) => { e.stopPropagation(); navigate('/subscription') }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', background: TIER_BG[tier], color: TIER_COLOR[tier], borderRadius: 99, fontSize: 11, fontWeight: 700, padding: '3px 9px' }}>
                   ✦ {tier}
                 </div>
               </div>
@@ -231,6 +333,7 @@ function Layout() {
         </div>
       </main>
     </div>
+    </AchievementToastProvider>
   )
 }
 

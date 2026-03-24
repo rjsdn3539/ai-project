@@ -74,3 +74,14 @@ class ReportSummaryResponse(BaseModel):
     weakPoints: str
     improvements: str
     recommendedAnswer: str
+
+
+class ParseJobPostingRequest(BaseModel):
+    url: Optional[str] = None
+    content: Optional[str] = None
+
+
+class ParseJobPostingResponse(BaseModel):
+    companyName: str
+    positionTitle: str
+    description: str

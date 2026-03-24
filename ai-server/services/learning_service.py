@@ -1,9 +1,11 @@
 import os
 import json
-from openai import OpenAI
+import asyncio
+from openai import OpenAI, AsyncOpenAI
 from schemas.learning_schema import Problem, GradeResponse, PlacementProblem, HintResponse
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+async_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 MODEL = os.getenv("MODEL_NAME", "gpt-4o")
 USE_MOCK = os.getenv("USE_MOCK", "false").lower() == "true"
 
@@ -47,6 +49,115 @@ SUBJECT_PROMPTS = {
 
 DIFFICULTY_MAP = {"EASY": "쉬운", "MEDIUM": "보통", "HARD": "어려운"}
 
+# 과목별 소주제 목록 — 각 문제에 다른 소주제를 배정하여 다양성 확보
+SUBJECT_TOPICS = {
+    "영어": ["어휘(단어 뜻/동의어)", "문법(시제)", "문법(조동사)", "문법(가정법)", "문법(수동태)",
+             "문법(전치사)", "문법(접속사)", "문법(관계사)", "어휘(숙어/관용표현)", "독해(빈칸 추론)"],
+    "국사": ["선사/고조선", "삼국시대", "남북국시대", "고려시대", "조선 전기", "조선 후기",
+             "개화기/근대", "일제강점기", "광복/현대", "사회·경제·문화사"],
+    "파이썬": ["기본 자료형(int/float/str/bool)", "리스트/튜플", "딕셔너리/셋", "조건문/반복문",
+               "함수(정의/인자/반환)", "클래스/OOP", "예외처리", "파일입출력", "표준라이브러리",
+               "데코레이터/제너레이터", "comprehension", "lambda/map/filter"],
+    "자바스크립트": ["변수(var/let/const)/스코프", "자료형/형변환", "함수/화살표함수", "클로저",
+                    "프로토타입/상속", "비동기(콜백/Promise)", "async/await", "DOM/이벤트",
+                    "ES6+ 문법(구조분해/스프레드)", "모듈(import/export)", "배열 메서드"],
+    "C++": ["포인터/참조", "메모리 관리(new/delete)", "클래스/생성자/소멸자", "상속/다형성",
+            "가상함수/추상클래스", "템플릿", "STL(vector/list)", "STL(map/set)", "RAII/스마트포인터",
+            "예외처리", "연산자 오버로딩"],
+    "일본어": ["히라가나/가타카나 읽기", "기초 조사", "동사 활용(て형/た형)", "동사 활용(ない형/조건형)",
+               "형용사 활용", "경어(존경어/겸양어)", "수수동사", "복합동사", "어휘", "문어체 문법"],
+    "데이터베이스": ["SELECT/WHERE/ORDER BY", "JOIN(INNER/LEFT/RIGHT)", "GROUP BY/집계함수",
+                    "서브쿼리", "인덱스", "정규화(1NF/2NF/3NF)", "트랜잭션/ACID", "DDL(CREATE/ALTER/DROP)",
+                    "뷰/저장프로시저", "NoSQL 개념"],
+    "자바": ["기본 자료형/래퍼클래스", "OOP(캡슐화/상속/다형성)", "인터페이스/추상클래스",
+             "예외처리(try-catch)", "컬렉션(List/Map/Set)", "제네릭", "람다/스트림API",
+             "멀티스레딩/동기화", "JVM/메모리구조", "입출력(I/O)"],
+    "스프링": ["IoC/DI", "AOP", "Spring MVC(@Controller/@RequestMapping)", "Spring Boot 자동설정",
+               "JPA 엔티티/연관관계", "JPQL/쿼리메서드", "@Transactional", "Spring Security 인증/인가",
+               "REST API 설계", "테스트(MockMvc/JUnit)"],
+    "default": [],
+}
+
+JAPANESE_DIFFICULTY_GUIDE = {
+    "EASY":   "JLPT N5 수준만 출제. 히라가나/가타카나 읽기, 기초 조사, です/ます체, 초등 어휘만 사용.",
+    "MEDIUM": "JLPT N4~N3 수준만 출제. て형/た형/ない형 활용, 조건형, 수수동사, N3 어휘 범위.",
+    "HARD":   "JLPT N2~N1 수준만 출제. 복합동사, 고급 경어, 문어체 문법, N1 어휘, 사역수동형.",
+}
+
+
+async def _generate_one_problem_async(subject: str, difficulty_kor: str, system_prompt: str, topic: str = "", difficulty_note: str = "") -> Problem | None:
+    """단일 문제 비동기 생성 (스트리밍용)"""
+    topic_line = f"\n반드시 다음 소주제로 출제하세요: [{topic}]" if topic else ""
+    prompt = f"""[{subject}] {difficulty_kor} 난이도 객관식(4지선다) 문제 1개를 만들어주세요.{difficulty_note}{topic_line}
+
+중요: 문제, 선택지 모두 반드시 한국어로 작성하세요. 코드 스니펫이 포함되는 경우에만 해당 프로그래밍 언어를 사용하되, 설명 부분은 한국어로 작성하세요.
+
+반드시 아래 JSON 형식으로만 응답하세요:
+{{
+  "problems": [
+    {{
+      "type": "MULTIPLE",
+      "question": "문제 내용 (한국어)",
+      "choices": ["선택지1", "선택지2", "선택지3", "선택지4"],
+      "answer": "선택지1"
+    }}
+  ]
+}}
+- choices는 정확히 4개
+- answer는 choices 중 하나와 정확히 일치해야 함"""
+
+    response = await async_client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_object"},
+    )
+    data = json.loads(response.choices[0].message.content)
+    problems = data.get("problems", [])
+    return Problem(**problems[0]) if problems else None
+
+
+async def generate_problems_stream(subject: str, difficulty: str, count: int):
+    """N개 문제를 병렬로 생성하고 완료되는 순서대로 yield"""
+    if USE_MOCK:
+        for p in MOCK_PROBLEMS[:count]:
+            await asyncio.sleep(0.3)
+            yield p
+        return
+
+    import random
+    system_prompt = SUBJECT_PROMPTS.get(subject, SUBJECT_PROMPTS["default"])
+    difficulty_kor = DIFFICULTY_MAP.get(difficulty, "보통")
+    difficulty_note = ""
+    if subject == "일본어":
+        difficulty_note = f"\n난이도 엄수: {JAPANESE_DIFFICULTY_GUIDE.get(difficulty, '')} 이 기준을 벗어난 문제는 절대 출제하지 마세요."
+
+    # 소주제 목록에서 count개 무작위 배정 (중복 최소화)
+    topics = SUBJECT_TOPICS.get(subject, [])
+    if topics:
+        shuffled = random.sample(topics, min(len(topics), count))
+        # count가 소주제 수보다 많으면 반복 사용 (단, 순서 셔플)
+        while len(shuffled) < count:
+            extra = random.sample(topics, min(len(topics), count - len(shuffled)))
+            shuffled += extra
+        assigned_topics = shuffled[:count]
+    else:
+        assigned_topics = [""] * count
+
+    tasks = [
+        asyncio.ensure_future(_generate_one_problem_async(subject, difficulty_kor, system_prompt, assigned_topics[i], difficulty_note))
+        for i in range(count)
+    ]
+    for coro in asyncio.as_completed(tasks):
+        try:
+            problem = await coro
+            if problem:
+                yield problem
+        except Exception:
+            pass
+
 
 def generate_problems(subject: str, difficulty: str, count: int, type: str) -> list[Problem]:
     """AI가 학습 문제 생성"""
@@ -57,19 +168,23 @@ def generate_problems(subject: str, difficulty: str, count: int, type: str) -> l
     system_prompt = SUBJECT_PROMPTS.get(subject, SUBJECT_PROMPTS["default"])
     difficulty_kor = DIFFICULTY_MAP.get(difficulty, "보통")
 
-    JAPANESE_DIFFICULTY_GUIDE = {
-        "EASY":   "JLPT N5 수준만 출제. 히라가나/가타카나 읽기, 기초 조사, です/ます체, 초등 어휘만 사용.",
-        "MEDIUM": "JLPT N4~N3 수준만 출제. て형/た형/ない형 활용, 조건형, 수수동사, N3 어휘 범위.",
-        "HARD":   "JLPT N2~N1 수준만 출제. 복합동사, 고급 경어, 문어체 문법, N1 어휘, 사역수동형.",
-    }
-
     difficulty_note = ""
     if subject == "일본어":
         difficulty_note = f"\n난이도 엄수: {JAPANESE_DIFFICULTY_GUIDE.get(difficulty, '')} 이 기준을 벗어난 문제는 절대 출제하지 마세요."
 
-    prompt = f"""[{subject}] {difficulty_kor} 난이도 객관식(4지선다) 문제 {count}개를 만들어주세요.{difficulty_note}
+    import random
+    topics = SUBJECT_TOPICS.get(subject, [])
+    topic_line = ""
+    if topics:
+        shuffled = random.sample(topics, min(len(topics), count))
+        while len(shuffled) < count:
+            shuffled += random.sample(topics, min(len(topics), count - len(shuffled)))
+        topic_list = ", ".join(f"문제{i+1}:[{t}]" for i, t in enumerate(shuffled[:count]))
+        topic_line = f"\n각 문제의 소주제를 다음과 같이 배정합니다: {topic_list}"
 
-중요: 문제, 선택지, 해설 모두 반드시 한국어로 작성하세요. 코드 스니펫이 포함되는 경우에만 해당 프로그래밍 언어를 사용하되, 설명 부분은 한국어로 작성하세요.
+    prompt = f"""[{subject}] {difficulty_kor} 난이도 객관식(4지선다) 문제 {count}개를 만들어주세요.{difficulty_note}{topic_line}
+
+중요: 문제, 선택지 모두 반드시 한국어로 작성하세요. 코드 스니펫이 포함되는 경우에만 해당 프로그래밍 언어를 사용하되, 설명 부분은 한국어로 작성하세요.
 
 반드시 아래 JSON 형식으로만 응답하세요:
 {{
@@ -78,15 +193,14 @@ def generate_problems(subject: str, difficulty: str, count: int, type: str) -> l
       "type": "MULTIPLE",
       "question": "문제 내용 (한국어)",
       "choices": ["선택지1", "선택지2", "선택지3", "선택지4"],
-      "answer": "선택지1",
-      "explanation": "해설 내용 (한국어)"
+      "answer": "선택지1"
     }}
   ]
 }}
 - type은 항상 "MULTIPLE"
 - choices는 정확히 4개
 - answer는 choices 중 하나와 정확히 일치해야 함
-- 문제와 해설은 반드시 한국어로 작성"""
+- 문제는 반드시 한국어로 작성"""
 
     response = client.chat.completions.create(
         model=MODEL,
@@ -101,18 +215,18 @@ def generate_problems(subject: str, difficulty: str, count: int, type: str) -> l
     return [Problem(**p) for p in data["problems"]]
 
 
-def grade_answer(question: str, correct_answer: str, user_answer: str, explanation: str) -> GradeResponse:
+def grade_answer(question: str, correct_answer: str, user_answer: str, explanation: str = "") -> GradeResponse:
     """사용자 답안 채점 및 AI 피드백 생성"""
 
     if USE_MOCK:
         is_correct = user_answer.strip() == correct_answer.strip()
-        feedback = f"{'정답입니다!' if is_correct else f'오답입니다. 정답은 [{correct_answer}]입니다.'} {explanation}"
+        feedback = f"{'정답입니다!' if is_correct else f'오답입니다. 정답은 [{correct_answer}]입니다.'}"
         return GradeResponse(isCorrect=is_correct, aiFeedback=feedback)
 
+    explanation_line = f"참고 해설: {explanation}\n" if explanation else ""
     prompt = f"""문제: {question}
 정답: {correct_answer}
-해설: {explanation}
-사용자 답안: {user_answer}
+{explanation_line}사용자 답안: {user_answer}
 
 사용자 답안이 정답인지 판단하고, 왜 맞았는지 또는 왜 틀렸는지 친절하게 설명해주세요.
 

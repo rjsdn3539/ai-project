@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 :root {
-  /* ── Primary ── 따뜻한 바이올렛 */
+  /* ── Primary ── 바이올렛 */
   --primary: #7c6af0;
   --primary-hover: #6b58e4;
   --primary-light: #f4f2fd;
@@ -14,64 +12,224 @@
   --accent-border: #b3e8fb;
 
   /* ── Semantic ── */
-  --success: #2da65e;
-  --warning: #e09420;
-  --danger: #e05252;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
 
-  /* ── Surfaces ── 따뜻한 크림 */
+  /* ── Semantic backgrounds ── */
+  --bg-success: #f0fdf4;
+  --border-success: #86efac;
+  --bg-error: #fef2f2;
+  --border-error: #fecaca;
+  --bg-warning: #fffbeb;
+  --border-warning: #fde68a;
+  --bg-indigo: #eef2ff;
+  --border-indigo: #c7d2fe;
+  --bg-purple: #f5f3ff;
+  --bg-slate: #f1f5f9;
+
+  /* ── Surfaces ── */
   --surface: #ffffff;
+  --surface-elevated: #ffffff;
   --bg: #f8f5f1;
   --bg-warm: #f3efe8;
 
-  /* ── Sidebar ── 따뜻한 다크 차콜 */
-  --sidebar-bg: #1e1b17;
+  /* ── Sidebar ── */
+  --sidebar-bg: #18181b;
 
-  /* ── Borders ── 따뜻한 베이지 */
+  /* ── Borders ── */
   --border: #e9e4db;
   --border-light: #f2ede6;
 
-  /* ── Text ── 따뜻한 스톤 */
+  /* ── Text ── */
   --text: #1e1b17;
   --text-secondary: #7c7068;
   --text-muted: #b3a99e;
 
-  /* ── Shadows ── 따뜻한 틴트 */
-  --shadow-sm: 0 1px 4px rgba(30,27,23,0.07), 0 1px 2px rgba(30,27,23,0.04);
-  --shadow: 0 4px 16px rgba(30,27,23,0.08);
-  --shadow-md: 0 8px 28px rgba(30,27,23,0.10);
-  --shadow-lg: 0 20px 56px rgba(30,27,23,0.13);
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.07);
+  --shadow-md: 0 8px 28px rgba(0,0,0,0.09);
+  --shadow-lg: 0 20px 56px rgba(0,0,0,0.12);
 
-  /* ── Radii ── 더 둥글게 */
+  /* ── Radii ── */
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 18px;
 
   --sidebar-w: 252px;
+
+  /* ── Transitions ── */
+  --transition-fast: 0.12s ease;
+  --transition: 0.18s ease;
+  --transition-slow: 0.28s ease;
 }
 
+/* ════════════════════════════════════════
+   DARK MODE
+   ════════════════════════════════════════ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --primary: #9d8df8;
+  --primary-hover: #8b7cf8;
+  --primary-light: rgba(157,141,248,0.14);
+  --primary-border: rgba(157,141,248,0.32);
+
+  --accent: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --accent-light: rgba(56,189,248,0.12);
+  --accent-border: rgba(56,189,248,0.28);
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  --bg-success: rgba(52,211,153,0.1);
+  --border-success: rgba(52,211,153,0.35);
+  --bg-error: rgba(248,113,113,0.1);
+  --border-error: rgba(248,113,113,0.35);
+  --bg-warning: rgba(251,191,36,0.1);
+  --border-warning: rgba(251,191,36,0.35);
+  --bg-indigo: rgba(157,141,248,0.12);
+  --border-indigo: rgba(157,141,248,0.32);
+  --bg-purple: rgba(168,85,247,0.1);
+  --bg-slate: rgba(255,255,255,0.04);
+
+  --surface: #18181b;
+  --surface-elevated: #1f1f23;
+  --bg: #09090b;
+  --bg-warm: #111113;
+
+  --sidebar-bg: #0c0c0f;
+
+  --border: #27272a;
+  --border-light: #1c1c1f;
+
+  --text: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.6);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,0.85);
+}
+
+/* ── 테마 전환 부드럽게 ── */
+body, main, aside, nav, header, footer,
+div, section, article, button, input, textarea, select, a {
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    color 0.15s ease;
+}
+
+/* ── 다크 입력 필드 전역 처리 ── */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: var(--bg-warm) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(157,141,248,0.18) !important;
+  outline: none !important;
+}
+
+[data-theme="dark"] .card-highlight {
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+/* ── Shimmer ── */
+[data-theme="dark"] .shimmer {
+  background: linear-gradient(90deg, #1c1c20 25%, #26262c 50%, #1c1c20 75%);
+  background-size: 800px 100%;
+}
+
+/* ── 다크 스크롤바 ── */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+[data-theme="dark"] * {
+  scrollbar-color: #3f3f46 transparent;
+}
+
+/* ════════════════════════════════════════
+   BASE
+   ════════════════════════════════════════ */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html { color-scheme: light; }
+[data-theme="dark"] html,
+html:has([data-theme="dark"]) { color-scheme: dark; }
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  line-height: 1.5;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
+               'Apple SD Gothic Neo', 'Noto Sans KR', 'Inter', sans-serif;
+  line-height: 1.6;
   color: var(--text);
   background: var(--bg);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 #root { min-height: 100vh; }
 a { text-decoration: none; color: inherit; }
 
+/* ── 제목 기본 스타일 ── */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+/* ── 한국어 단락 ── */
+p {
+  line-height: 1.7;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d4ccc2; border-radius: 99px; }
+::-webkit-scrollbar-thumb {
+  background: #d4ccc2;
+  border-radius: 99px;
+}
 
-/* ── Animations ── */
+/* ── 위젯 호버 오버레이 ── */
+div:hover > .widget-overlay { opacity: 1 !important; pointer-events: all !important; }
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════ */
 @keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUpSm {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
 }
 @keyframes pulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(224,82,82,0.4); }
@@ -84,17 +242,44 @@ a { text-decoration: none; color: inherit; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
 
-.page-anim { animation: fadeIn 0.25s ease both; }
+/* 페이지 전환 — 아래서 부드럽게 올라옴 */
+.page-anim {
+  animation: slideUpSm 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
-/* ── Card hover lift ── */
+/* 모달 등 scaleIn */
+.anim-scale {
+  animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ════════════════════════════════════════
+   UTILITY CLASSES
+   ════════════════════════════════════════ */
+
+/* ── 카드 기본 스타일 ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── 카드 hover lift ── */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
 }
 .card-hover:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md) !important;
+}
+.card-hover:active {
+  transform: translateY(-1px);
 }
 
 /* ── Gradient text ── */
@@ -106,12 +291,31 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* ── Shimmer skeleton ── */
-@keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
 .shimmer {
   background: linear-gradient(90deg, #f2ede6 25%, #ede8e0 50%, #f2ede6 75%);
   background-size: 800px 100%;
   animation: shimmer 1.6s infinite;
+  border-radius: var(--radius);
+}
+
+/* ── Focus visible (접근성) ── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── 버튼 전역 active 효과 ── */
+button:not(:disabled):active {
+  transform: scale(0.97) !important;
+}
+
+/* ── 선택 텍스트 색상 ── */
+::selection {
+  background: rgba(124, 106, 240, 0.18);
+  color: var(--text);
 }

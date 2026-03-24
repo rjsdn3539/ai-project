@@ -5,7 +5,6 @@ import com.aimentor.common.security.AuthenticatedUser;
 import com.aimentor.domain.interview.dto.request.SaveInterviewAnswerRequest;
 import com.aimentor.domain.interview.dto.request.StartInterviewSessionRequest;
 import com.aimentor.domain.interview.dto.response.InterviewAnswerResponse;
-import com.aimentor.domain.interview.dto.response.InterviewFeedbackResponse;
 import com.aimentor.domain.interview.dto.response.InterviewResultReportResponse;
 import com.aimentor.domain.interview.dto.response.InterviewSessionResponse;
 import com.aimentor.domain.interview.service.InterviewSessionService;
@@ -19,17 +18,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Exposes interview-session APIs for authenticated users.
- */
 @RestController
-@RequestMapping({"/api/interviews/sessions", "/api/v1/interviews/sessions"})
+@RequestMapping("/api/v1/interviews/sessions")
 public class InterviewSessionController {
 
     private final InterviewSessionService interviewSessionService;
 
     public InterviewSessionController(InterviewSessionService interviewSessionService) {
         this.interviewSessionService = interviewSessionService;
+    }
+
+    @GetMapping
+    public ApiResponse<List<InterviewSessionResponse>> getSessions(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return ApiResponse.success(interviewSessionService.getSessions(authenticatedUser.userId()));
     }
 
     @PostMapping
@@ -40,11 +42,12 @@ public class InterviewSessionController {
         return ApiResponse.success(interviewSessionService.startSession(authenticatedUser.userId(), request));
     }
 
-    @GetMapping
-    public ApiResponse<List<InterviewSessionResponse>> listSessions(
-            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    @PostMapping("/{sessionId}/end")
+    public ApiResponse<InterviewSessionResponse> endSession(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable Long sessionId
     ) {
-        return ApiResponse.success(interviewSessionService.listSessions(authenticatedUser.userId()));
+        return ApiResponse.success(interviewSessionService.endSession(authenticatedUser.userId(), sessionId));
     }
 
     @GetMapping("/{sessionId}")
@@ -55,7 +58,7 @@ public class InterviewSessionController {
         return ApiResponse.success(interviewSessionService.getSessionDetail(authenticatedUser.userId(), sessionId));
     }
 
-    @PostMapping({"/{sessionId}/answer", "/{sessionId}/answers"})
+    @PostMapping("/{sessionId}/answers")
     public ApiResponse<InterviewAnswerResponse> saveAnswer(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @PathVariable Long sessionId,
@@ -64,23 +67,7 @@ public class InterviewSessionController {
         return ApiResponse.success(interviewSessionService.saveAnswer(authenticatedUser.userId(), sessionId, request));
     }
 
-    @PostMapping("/{sessionId}/end")
-    public ApiResponse<InterviewSessionResponse> endSession(
-            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @PathVariable Long sessionId
-    ) {
-        return ApiResponse.success(interviewSessionService.endSession(authenticatedUser.userId(), sessionId));
-    }
-
-    @GetMapping({"/{sessionId}/feedback", "/{sessionId}/report"})
-    public ApiResponse<InterviewFeedbackResponse> getFeedback(
-            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @PathVariable Long sessionId
-    ) {
-        return ApiResponse.success(interviewSessionService.getFeedback(authenticatedUser.userId(), sessionId));
-    }
-
-    @GetMapping("/{sessionId}/full-report")
+    @GetMapping("/{sessionId}/report")
     public ApiResponse<InterviewResultReportResponse> getResultReport(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @PathVariable Long sessionId

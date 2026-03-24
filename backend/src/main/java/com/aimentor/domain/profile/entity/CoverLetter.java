@@ -33,7 +33,7 @@ public class CoverLetter extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = true, length = 100)
     private String companyName;
 
     @Column(nullable = false, length = 5000)

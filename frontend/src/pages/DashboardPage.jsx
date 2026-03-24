@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tooltip, ResponsiveContainer, Area, AreaChart, XAxis, YAxis, ReferenceLine } from 'recharts'
 import useAuthStore from '../store/authStore'
@@ -6,9 +6,9 @@ import * as interviewApi from '../api/interview'
 import * as subscriptionApi from '../api/subscription'
 
 const MOCK_SESSIONS = [
-  { id: 1, company: '카카오', position: '백엔드', overallScore: 65, endedAt: '2026-03-10' },
-  { id: 2, company: '네이버', position: '프론트엔드', overallScore: 72, endedAt: '2026-03-13' },
-  { id: 3, company: '라인', position: '풀스택', overallScore: 80, endedAt: '2026-03-16' },
+  { id: 1, title: '카카오', positionTitle: '백엔드', feedback: { overallScore: 65 }, endedAt: '2026-03-10' },
+  { id: 2, title: '네이버', positionTitle: '프론트엔드', feedback: { overallScore: 72 }, endedAt: '2026-03-13' },
+  { id: 3, title: '라인', positionTitle: '풀스택', feedback: { overallScore: 80 }, endedAt: '2026-03-16' },
 ]
 const MOCK_CHART = [
   { date: '3/10', score: 65 }, { date: '3/13', score: 72 }, { date: '3/16', score: 80 },
@@ -33,7 +33,7 @@ const MOCK_COACHING = [
 ]
 
 const GOAL_SCORE = 85
-const TIER_COLOR = { FREE: '#b3a99e', STANDARD: '#7c6af0', PRO: '#9b5de5', PREMIUM: '#e09420' }
+const TIER_COLOR = { FREE: '#b3a99e', STANDARD: '#7c6af0', PRO: '#9b5de5', PREMIUM: 'var(--warning)' }
 
 function getPercentile(score) {
   if (!score) return null
@@ -61,7 +61,7 @@ function CustomDot(props) {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow)' }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow)' }}>
       <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 3 }}>{label}</p>
       <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>{payload[0].value}점</p>
     </div>
@@ -74,7 +74,6 @@ function DashboardPage() {
   const [chartData, setChartData]   = useState(MOCK_CHART)
   const [subStatus, setSubStatus]   = useState(null)
   const [hoveredRow, setHoveredRow] = useState(null)
-  const [ctaHovered, setCtaHovered] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -83,42 +82,54 @@ function DashboardPage() {
       .then(({ data }) => {
         const list = data.data || []
         setSessions(list.slice(0, 5))
-        if (list.length > 0) setChartData(list.map((s) => ({ date: s.endedAt?.slice(5), score: s.overallScore || 0 })))
+        const scored = list.filter(s => s.feedback?.overallScore != null)
+        if (scored.length > 0) {
+          const chartList = [...scored].reverse()
+          setChartData(chartList.map((s) => ({ date: s.endedAt?.slice(5, 10), score: s.feedback.overallScore })))
+        }
       })
       .catch(() => setSessions(MOCK_SESSIONS))
   }, [])
 
   const tier        = subStatus?.tier || user?.subscriptionTier || 'FREE'
-  const avgScore    = sessions.length > 0 ? Math.round(sessions.reduce((s, x) => s + (x.overallScore || 0), 0) / sessions.length) : null
-  const latestScore = sessions.length > 0 ? sessions[sessions.length - 1]?.overallScore : null
-  const prevScore   = sessions.length > 1 ? sessions[sessions.length - 2]?.overallScore : null
+  const scored      = sessions.filter(s => s.feedback?.overallScore != null)
+  const avgScore    = scored.length > 0 ? Math.round(scored.reduce((sum, x) => sum + x.feedback.overallScore, 0) / scored.length) : null
+  const latestScore = scored.length > 0 ? scored[0].feedback.overallScore : null
+  const prevScore   = scored.length > 1 ? scored[1].feedback.overallScore : null
   const scoreTrend  = latestScore != null && prevScore != null ? latestScore - prevScore : null
   const percentile  = getPercentile(avgScore)
   const toGoal      = avgScore != null ? GOAL_SCORE - avgScore : null
   const goalPct     = avgScore != null ? Math.min(100, Math.round((avgScore / GOAL_SCORE) * 100)) : 0
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
 
       {/* ══ A. 인사 헤더 ══ */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>
+          내 통계
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>면접 성과와 성장 지표를 한눈에 확인하세요.</p>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
         <div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 3 }}>
             {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
           </p>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
             안녕하세요, {user?.name || '사용자'}님 👋
-          </h1>
+          </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {avgScore && percentile && (
             <div style={{
-              background: '#fff', border: '1.5px solid var(--border)',
+              background: 'var(--surface)', border: '1.5px solid var(--border)',
               borderRadius: 99, padding: '6px 14px',
               display: 'flex', alignItems: 'center', gap: 7,
               boxShadow: 'var(--shadow-sm)', fontSize: 13,
             }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: avgScore >= 70 ? '#2da65e' : '#e09420', flexShrink: 0 }} />
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: avgScore >= 70 ? 'var(--success)' : 'var(--warning)', flexShrink: 0 }} />
               <span style={{ fontWeight: 700, color: 'var(--text)' }}>{avgScore}점</span>
               <span style={{ color: 'var(--accent)', fontWeight: 700 }}>상위 {percentile}%</span>
             </div>
@@ -134,116 +145,68 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ B. 메인 CTA ══ */}
-      <div
-        onMouseEnter={() => setCtaHovered(true)}
-        onMouseLeave={() => setCtaHovered(false)}
-        style={{
-          borderRadius: 22, marginBottom: 18, overflow: 'hidden',
-          boxShadow: ctaHovered ? '0 24px 64px rgba(91,72,232,0.38)' : '0 10px 36px rgba(91,72,232,0.24)',
-          transform: ctaHovered ? 'translateY(-2px)' : 'none',
-          transition: 'all 0.25s ease',
-        }}
-      >
-        {/* Main area */}
-        <div style={{
-          background: 'linear-gradient(130deg, #4a38e0 0%, #7c6af0 50%, #0ea5e9 100%)',
-          padding: '36px 44px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
-          position: 'relative', overflow: 'hidden',
-        }}>
-          {/* bg shapes */}
-          <div style={{ position: 'absolute', top: -60, right: 260, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -80, right: -10, width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            {/* Status badge */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7,
-              background: 'rgba(255,255,255,0.15)', borderRadius: 99,
-              padding: '5px 14px', marginBottom: 18,
-              fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.95)',
-            }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%', background: '#4ade80',
-                boxShadow: '0 0 0 3px rgba(74,222,128,0.3)',
-              }} />
-              AI 면접관 대기 중
+      {/* ══ B. 핵심 지표 요약 카드 4개 ══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
+        {[
+          {
+            icon: '📊',
+            label: '평균 점수',
+            value: avgScore != null ? `${avgScore}점` : '—',
+            sub: avgScore != null ? (avgScore >= 80 ? '우수한 수준이에요' : avgScore >= 60 ? '평균 수준이에요' : '개선이 필요해요') : '면접을 시작해보세요',
+            color: avgScore != null ? (avgScore >= 80 ? 'var(--success)' : avgScore >= 60 ? 'var(--warning)' : '#e05252') : 'var(--text-muted)',
+            bg: avgScore != null ? (avgScore >= 80 ? 'var(--bg-success)' : avgScore >= 60 ? 'var(--bg-warning)' : 'var(--bg-error)') : 'var(--bg)',
+            border: avgScore != null ? (avgScore >= 80 ? 'var(--bg-success)' : avgScore >= 60 ? 'var(--border-warning)' : 'var(--border-error)') : 'var(--border-light)',
+          },
+          {
+            icon: '🎯',
+            label: '총 면접 횟수',
+            value: `${sessions.length}회`,
+            sub: sessions.length === 0 ? '첫 면접을 시작해보세요' : `최근 ${sessions.length}개 기록 분석 중`,
+            color: 'var(--primary)',
+            bg: 'var(--primary-light)',
+            border: 'var(--primary-border)',
+          },
+          {
+            icon: '📈',
+            label: '지난 면접 대비',
+            value: scoreTrend != null ? `${scoreTrend > 0 ? '+' : ''}${scoreTrend}점` : '—',
+            sub: scoreTrend != null ? (scoreTrend > 0 ? '상승 중이에요 🎉' : scoreTrend < 0 ? '하락했어요, 힘내세요' : '유지 중이에요') : '데이터 부족',
+            color: scoreTrend != null ? (scoreTrend > 0 ? 'var(--success)' : scoreTrend < 0 ? '#e05252' : 'var(--text)') : 'var(--text-muted)',
+            bg: scoreTrend != null ? (scoreTrend > 0 ? 'var(--bg-success)' : scoreTrend < 0 ? 'var(--bg-error)' : 'var(--bg)') : 'var(--bg)',
+            border: scoreTrend != null ? (scoreTrend > 0 ? 'var(--bg-success)' : scoreTrend < 0 ? 'var(--border-error)' : 'var(--border-light)') : 'var(--border-light)',
+          },
+          {
+            icon: '🏆',
+            label: '전체 랭킹',
+            value: percentile ? `상위 ${percentile}%` : '—',
+            sub: percentile ? (percentile <= 10 ? '최상위권이에요!' : percentile <= 30 ? '상위권에 있어요' : '꾸준히 올라가고 있어요') : '면접 후 집계됩니다',
+            color: 'var(--accent)',
+            bg: 'var(--bg-indigo)',
+            border: 'var(--bg-indigo)',
+          },
+        ].map(({ icon, label, value, sub, color, bg, border }) => (
+          <div key={label} style={{
+            background: bg, borderRadius: 16, padding: '20px 22px',
+            border: `1.5px solid ${border}`, boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'var(--surface)', border: `1px solid ${border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+              }}>{icon}</div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>{label}</span>
             </div>
-
-            <h2 style={{ fontSize: 34, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 10 }}>
-              지금 면접을<br />시작할까요?
-            </h2>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.72)', lineHeight: 1.65, marginBottom: 28, maxWidth: 360 }}>
-              {sessions.length === 0
-                ? 'AI가 실제 면접관처럼 질문하고 즉각적인 피드백을 드립니다. 첫 면접을 시작해보세요!'
-                : scoreTrend != null && scoreTrend > 0
-                  ? `지난 면접보다 ${scoreTrend}점 올랐어요. 이 기세로 오늘도 도전해보세요!`
-                  : scoreTrend != null && scoreTrend < 0
-                    ? `점수가 ${Math.abs(scoreTrend)}점 낮아졌어요. 오늘 다시 도전하면 분명 나아질 거예요.`
-                    : 'AI가 답변을 분석하고 구체적인 개선 방향을 제시합니다.'
-              }
-            </p>
-
-            {/* Primary button */}
-            <button
-              onClick={() => navigate('/interview/setup')}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 10,
-                background: '#fff', color: '#4a38e0',
-                border: 'none', borderRadius: 14,
-                padding: '17px 36px', fontSize: 17, fontWeight: 900,
-                cursor: 'pointer', fontFamily: 'inherit',
-                boxShadow: '0 8px 28px rgba(0,0,0,0.2)',
-                transition: 'all 0.18s ease',
-                transform: ctaHovered ? 'scale(1.04)' : 'none',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              🚀 지금 면접 시작하기
-            </button>
+            <p style={{ fontSize: 28, fontWeight: 900, color, lineHeight: 1, marginBottom: 6 }}>{value}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{sub}</p>
           </div>
-
-          {/* Right icon */}
-          <div style={{
-            position: 'relative', zIndex: 1, flexShrink: 0,
-            width: 110, height: 110, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.13)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 50,
-            boxShadow: '0 0 0 14px rgba(255,255,255,0.05), 0 0 0 28px rgba(255,255,255,0.025)',
-          }}>🎤</div>
-        </div>
-
-        {/* Sub-action bar */}
-        <div style={{
-          background: '#2a2250',
-          padding: '12px 44px',
-          display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginRight: 6 }}>다른 선택지</span>
-          {[
-            { label: '📚 학습하기', path: '/learning' },
-            { label: '📊 최근 결과 보기', path: sessions.length > 0 ? `/interview/result/${sessions[sessions.length - 1]?.id}` : '/interview/setup' },
-          ].map(({ label, path }) => (
-            <button key={label} onClick={() => navigate(path)}
-              style={{
-                background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
-                padding: '6px 14px', fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.13)'; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
-            >{label}</button>
-          ))}
-        </div>
+        ))}
       </div>
 
       {/* ══ C. 목표 진행 바 ══ */}
       {avgScore != null && (
         <div style={{
-          background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 16,
+          background: 'var(--surface)', borderRadius: 16, padding: '20px 24px', marginBottom: 16,
           border: '1.5px solid var(--border-light)', boxShadow: 'var(--shadow-sm)',
           display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 20,
         }}>
@@ -256,7 +219,7 @@ function DashboardPage() {
                   fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
                 }}>목표 {GOAL_SCORE}점</span>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: toGoal <= 0 ? '#2da65e' : 'var(--text)' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: toGoal <= 0 ? 'var(--success)' : 'var(--text)' }}>
                 {toGoal <= 0 ? '🎉 목표 달성!' : `+${toGoal}점 남았어요`}
               </span>
             </div>
@@ -280,11 +243,11 @@ function DashboardPage() {
           {/* Trend badge */}
           {scoreTrend != null && (
             <div style={{
-              background: scoreTrend > 0 ? '#f0fdf4' : scoreTrend < 0 ? '#fef2f2' : '#f5f0eb',
-              border: `1.5px solid ${scoreTrend > 0 ? '#bbf7d0' : scoreTrend < 0 ? '#fecaca' : '#e9e4db'}`,
+              background: scoreTrend > 0 ? 'var(--bg-success)' : scoreTrend < 0 ? 'var(--bg-error)' : '#f5f0eb',
+              border: `1.5px solid ${scoreTrend > 0 ? 'var(--bg-success)' : scoreTrend < 0 ? 'var(--border-error)' : 'var(--border)'}`,
               borderRadius: 14, padding: '12px 18px', textAlign: 'center', flexShrink: 0,
             }}>
-              <p style={{ fontSize: 24, fontWeight: 900, color: scoreTrend > 0 ? '#2da65e' : scoreTrend < 0 ? '#e05252' : '#7c7068', lineHeight: 1 }}>
+              <p style={{ fontSize: 24, fontWeight: 900, color: scoreTrend > 0 ? 'var(--success)' : scoreTrend < 0 ? '#e05252' : 'var(--text-secondary)', lineHeight: 1 }}>
                 {scoreTrend > 0 ? '▲' : scoreTrend < 0 ? '▼' : '='} {scoreTrend > 0 ? '+' : ''}{scoreTrend}점
               </p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>지난 면접 대비</p>
@@ -298,7 +261,7 @@ function DashboardPage() {
 
         {/* D. AI 코칭 카드 */}
         <div style={{
-          background: '#fff', borderRadius: 16, padding: '22px 24px',
+          background: 'var(--surface)', borderRadius: 16, padding: '22px 24px',
           border: '1.5px solid var(--border-light)', boxShadow: 'var(--shadow-sm)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
@@ -313,8 +276,8 @@ function DashboardPage() {
             </div>
             <span style={{
               marginLeft: 'auto', fontSize: 10, fontWeight: 700,
-              background: '#fff0f0', color: '#e05252',
-              padding: '3px 9px', borderRadius: 99, border: '1px solid #fecaca',
+              background: 'var(--bg-error)', color: 'var(--danger)',
+              padding: '3px 9px', borderRadius: 99, border: '1px solid var(--border-error)',
             }}>개선 필요 2가지</span>
           </div>
 
@@ -351,7 +314,7 @@ function DashboardPage() {
               fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = 'var(--surface)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)' }}
           >
             이 피드백 반영해서 다시 도전 →
@@ -366,14 +329,14 @@ function DashboardPage() {
               ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
               : '#fff',
             borderRadius: 16, padding: '20px 22px', flex: 1,
-            border: `1.5px solid ${scoreTrend != null && scoreTrend > 0 ? '#bbf7d0' : 'var(--border-light)'}`,
+            border: `1.5px solid ${scoreTrend != null && scoreTrend > 0 ? 'var(--bg-success)' : 'var(--border-light)'}`,
             boxShadow: 'var(--shadow-sm)',
           }}>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 10 }}>성장 지표</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>지난 면접 대비</p>
-                <p style={{ fontSize: 26, fontWeight: 900, color: scoreTrend != null && scoreTrend > 0 ? '#2da65e' : scoreTrend != null && scoreTrend < 0 ? '#e05252' : 'var(--text)' }}>
+                <p style={{ fontSize: 26, fontWeight: 900, color: scoreTrend != null && scoreTrend > 0 ? 'var(--success)' : scoreTrend != null && scoreTrend < 0 ? '#e05252' : 'var(--text)' }}>
                   {scoreTrend != null
                     ? `${scoreTrend > 0 ? '▲ +' : scoreTrend < 0 ? '▼ ' : ''}${scoreTrend}점`
                     : sessions.length === 0 ? '—' : '첫 기록'
@@ -381,7 +344,7 @@ function DashboardPage() {
                 </p>
                 {scoreTrend != null && (
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {latestScore}점 → {latestScore}점
+                    {prevScore}점 → {latestScore}점
                   </p>
                 )}
               </div>
@@ -400,7 +363,7 @@ function DashboardPage() {
 
           {/* Quick stat: total */}
           <div style={{
-            background: '#fff', borderRadius: 16, padding: '16px 22px',
+            background: 'var(--surface)', borderRadius: 16, padding: '16px 22px',
             border: '1.5px solid var(--border-light)', boxShadow: 'var(--shadow-sm)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
@@ -421,12 +384,12 @@ function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14 }}>
 
         {/* Chart */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: '22px 24px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '22px 24px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>점수 추이</h3>
               {scoreTrend != null && (
-                <p style={{ fontSize: 12, color: scoreTrend > 0 ? '#2da65e' : '#e05252' }}>
+                <p style={{ fontSize: 12, color: scoreTrend > 0 ? 'var(--success)' : '#e05252' }}>
                   {scoreTrend > 0 ? `▲ +${scoreTrend}점 상승 중` : `▼ ${scoreTrend}점 하락`}
                 </p>
               )}
@@ -466,7 +429,7 @@ function DashboardPage() {
         </div>
 
         {/* Recent interviews */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: '22px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '22px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>최근 면접 기록</h3>
             <button onClick={() => navigate('/interview/setup')}
@@ -500,13 +463,13 @@ function DashboardPage() {
               }}
             >
               <div>
-                <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', marginBottom: 1 }}>{s.company}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.position} · {s.endedAt}</p>
+                <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', marginBottom: 1 }}>{s.title}</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.positionTitle} · {s.endedAt?.slice(0, 10)}</p>
               </div>
               <span style={{
                 fontSize: 15, fontWeight: 800,
-                color: s.overallScore >= 80 ? '#2da65e' : s.overallScore >= 60 ? '#e09420' : '#e05252',
-              }}>{s.overallScore}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>점</span></span>
+                color: s.feedback?.overallScore >= 80 ? 'var(--success)' : s.feedback?.overallScore >= 60 ? 'var(--warning)' : '#e05252',
+              }}>{s.feedback?.overallScore ?? '—'}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>점</span></span>
             </div>
           ))}
         </div>

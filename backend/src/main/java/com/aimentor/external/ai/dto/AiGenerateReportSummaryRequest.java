@@ -12,6 +12,6 @@ public record AiGenerateReportSummaryRequest(
         @Size(max = 100, message = "Position title must be 100 characters or less.")
         String positionTitle,
 
-        List<AiAnalyzeAnswerFeedbackResponse> answerFeedback
+        List<AiReportQaItem> answerFeedback
 ) {
 }

@@ -3,11 +3,15 @@ package com.aimentor.domain.profile.service;
 import com.aimentor.common.exception.ApiException;
 import com.aimentor.domain.profile.dto.request.JobPostingUpsertRequest;
 import com.aimentor.domain.profile.dto.response.JobPostingResponse;
+import com.aimentor.domain.profile.dto.response.ParseJobPostingUrlResponse;
 import com.aimentor.domain.profile.entity.JobPosting;
 import com.aimentor.domain.profile.repository.JobPostingRepository;
 import com.aimentor.domain.subscription.SubscriptionService;
 import com.aimentor.domain.user.entity.User;
 import com.aimentor.domain.user.repository.UserRepository;
+import com.aimentor.external.ai.AiIntegrationService;
+import com.aimentor.external.ai.dto.AiParseJobPostingRequest;
+import com.aimentor.external.ai.dto.AiParseJobPostingResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,12 +24,14 @@ public class JobPostingService {
     private final JobPostingRepository jobPostingRepository;
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
+    private final AiIntegrationService aiIntegrationService;
 
     public JobPostingService(JobPostingRepository jobPostingRepository, UserRepository userRepository,
-                             SubscriptionService subscriptionService) {
+                             SubscriptionService subscriptionService, AiIntegrationService aiIntegrationService) {
         this.jobPostingRepository = jobPostingRepository;
         this.userRepository = userRepository;
         this.subscriptionService = subscriptionService;
+        this.aiIntegrationService = aiIntegrationService;
     }
 
     @Transactional
@@ -70,6 +76,11 @@ public class JobPostingService {
     public void delete(Long userId, Long jobPostingId) {
         JobPosting jobPosting = getOwnedJobPosting(userId, jobPostingId);
         jobPostingRepository.delete(jobPosting);
+    }
+
+    public ParseJobPostingUrlResponse parseUrl(String url, String content) {
+        AiParseJobPostingResponse result = aiIntegrationService.parseJobPosting(new AiParseJobPostingRequest(url, content));
+        return new ParseJobPostingUrlResponse(result.companyName(), result.positionTitle(), result.description());
     }
 
     private User getUser(Long userId) {

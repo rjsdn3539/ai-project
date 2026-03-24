@@ -11,6 +11,8 @@ public record SubscriptionStatusResponse(
         int dailyLearningLimit,
         int profileDocLimit,
         int maxQuestionCount,
-        boolean feedbackScoreVisible
+        boolean feedbackScoreVisible,
+        int bookDiscountRate,
+        SubscriptionTier pendingDowngradeTier
 ) {
 }

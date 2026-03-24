@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import Input from '../components/Input'
@@ -53,24 +53,24 @@ function LoginPage() {
               fontSize: 22, boxShadow: '0 4px 14px rgba(79,70,229,0.35)',
             }}>🤖</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>AI 면접 플랫폼</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Interview Assistant</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>AI 면접 플랫폼</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interview Assistant</div>
             </div>
           </div>
 
           <div style={{
-            background: '#fff', borderRadius: 16, padding: '36px',
+            background: 'var(--surface)', borderRadius: 16, padding: '36px',
             boxShadow: '0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)',
           }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>로그인</h1>
-            <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>계정에 로그인하여 면접 연습을 시작하세요</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>로그인</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>계정에 로그인하여 면접 연습을 시작하세요</p>
 
             {error && (
               <div style={{
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
+                background: 'var(--bg-error)', border: '1px solid var(--border-error)', borderRadius: 10,
                 padding: '12px 16px', marginBottom: 18,
                 display: 'flex', alignItems: 'center', gap: 8,
-                color: '#dc2626', fontSize: 13,
+                color: 'var(--danger)', fontSize: 13,
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
@@ -128,10 +128,35 @@ function LoginPage() {
             </form>
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748b' }}>
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
             계정이 없으신가요?{' '}
-            <Link to="/auth/register" style={{ color: '#4f46e5', fontWeight: 600 }}>회원가입</Link>
+            <Link to="/auth/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>회원가입</Link>
           </p>
+
+          <button
+            onClick={() => navigate('/home')}
+            style={{
+              width: '100%', marginTop: 10, padding: '12px',
+              background: '#fff',
+              border: '1.5px solid #c7d2fe',
+              borderRadius: 12, color: '#4f46e5',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'all 0.15s',
+              boxShadow: '0 1px 4px rgba(79,70,229,0.08)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#eef2ff'
+              e.currentTarget.style.borderColor = '#a5b4fc'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#fff'
+              e.currentTarget.style.borderColor = '#c7d2fe'
+            }}
+          >
+            🏠 로그인 없이 둘러보기
+          </button>
         </div>
       </div>
     </div>
