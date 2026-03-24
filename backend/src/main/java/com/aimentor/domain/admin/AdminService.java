@@ -6,6 +6,11 @@ import com.aimentor.domain.book.repository.BookRepository;
 import com.aimentor.domain.interview.entity.InterviewSession;
 import com.aimentor.domain.interview.entity.InterviewSessionStatus;
 import com.aimentor.domain.interview.repository.InterviewSessionRepository;
+import com.aimentor.domain.order.entity.DeliveryStatus;
+import com.aimentor.domain.order.entity.Order;
+import com.aimentor.domain.order.entity.OrderType;
+import com.aimentor.domain.order.entity.PaymentStatus;
+import com.aimentor.domain.order.repository.OrderRepository;
 import com.aimentor.domain.subscription.SubscriptionService;
 import com.aimentor.domain.subscription.SubscriptionTier;
 import com.aimentor.domain.user.entity.Role;
@@ -33,6 +38,7 @@ public class AdminService {
     private final InterviewSessionRepository sessionRepository;
     private final BookRepository bookRepository;
     private final SubscriptionService subscriptionService;
+    private final OrderRepository orderRepository;
 
     // ── Dashboard ──────────────────────────────────────────────────────────────
 
@@ -209,4 +215,85 @@ public class AdminService {
     public record ChangeRoleRequest(String role) {}
 
     public record ChangeSubscriptionRequest(String tier, int durationMonths) {}
+
+    // ── Orders (결제 관리) ─────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public Page<OrderSummary> getOrders(int page, int size, String paymentStatus) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Order> orders = (paymentStatus != null && !paymentStatus.isBlank())
+                ? orderRepository.findByPaymentStatus(PaymentStatus.valueOf(paymentStatus.toUpperCase()), pageable)
+                : orderRepository.findAll(pageable);
+        return orders.map(this::toOrderSummary);
+    }
+
+    @Transactional
+    public OrderSummary updatePaymentStatus(Long orderId, String status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
+        order.updatePaymentStatus(PaymentStatus.valueOf(status.toUpperCase()));
+        return toOrderSummary(order);
+    }
+
+    // ── Deliveries (배송 관리) ─────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public Page<OrderSummary> getDeliveries(int page, int size, String deliveryStatus) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Order> orders = (deliveryStatus != null && !deliveryStatus.isBlank())
+                ? orderRepository.findByOrderTypeAndDeliveryStatus(
+                        OrderType.BOOK, DeliveryStatus.valueOf(deliveryStatus.toUpperCase()), pageable)
+                : orderRepository.findByOrderType(OrderType.BOOK, pageable);
+        return orders.map(this::toOrderSummary);
+    }
+
+    @Transactional
+    public OrderSummary updateDelivery(Long orderId, String deliveryStatus, String trackingNumber) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
+        order.updateDelivery(DeliveryStatus.valueOf(deliveryStatus.toUpperCase()), trackingNumber);
+        return toOrderSummary(order);
+    }
+
+    private OrderSummary toOrderSummary(Order o) {
+        List<OrderItemSummary> items = o.getItems().stream()
+                .map(i -> new OrderItemSummary(i.getBookId(), i.getBookTitle(), i.getQuantity(), i.getUnitPrice()))
+                .toList();
+        return new OrderSummary(
+                o.getId(), o.getOrderNumber(),
+                o.getUser().getName(), o.getUser().getEmail(),
+                o.getOrderType().name(), o.getTotalAmount(), o.getPaymentMethod(),
+                o.getPaymentStatus().name(),
+                o.getDeliveryStatus() != null ? o.getDeliveryStatus().name() : null,
+                o.getTrackingNumber(), o.getDeliveryAddress(),
+                o.getRecipientName(), o.getRecipientPhone(),
+                items, o.getCreatedAt());
+    }
+
+    public record OrderSummary(
+            Long id,
+            String orderNumber,
+            String userName,
+            String userEmail,
+            String orderType,
+            Integer totalAmount,
+            String paymentMethod,
+            String paymentStatus,
+            String deliveryStatus,
+            String trackingNumber,
+            String deliveryAddress,
+            String recipientName,
+            String recipientPhone,
+            List<OrderItemSummary> items,
+            LocalDateTime createdAt) {}
+
+    public record OrderItemSummary(
+            Long bookId,
+            String bookTitle,
+            Integer quantity,
+            Integer unitPrice) {}
+
+    public record UpdatePaymentStatusRequest(String paymentStatus) {}
+
+    public record UpdateDeliveryRequest(String deliveryStatus, String trackingNumber) {}
 }

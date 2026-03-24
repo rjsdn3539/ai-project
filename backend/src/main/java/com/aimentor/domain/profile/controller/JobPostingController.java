@@ -4,9 +4,11 @@ import com.aimentor.common.api.ApiResponse;
 import com.aimentor.common.security.AuthenticatedUser;
 import com.aimentor.domain.profile.dto.request.JobPostingUpsertRequest;
 import com.aimentor.domain.profile.dto.response.JobPostingResponse;
+import com.aimentor.domain.profile.dto.response.ParseJobPostingUrlResponse;
 import com.aimentor.domain.profile.service.JobPostingService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +28,14 @@ public class JobPostingController {
 
     public JobPostingController(JobPostingService jobPostingService) {
         this.jobPostingService = jobPostingService;
+    }
+
+    @PostMapping("/parse-url")
+    public ApiResponse<ParseJobPostingUrlResponse> parseUrl(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestBody Map<String, String> body
+    ) {
+        return ApiResponse.success(jobPostingService.parseUrl(body.get("url"), body.get("content")));
     }
 
     @PostMapping

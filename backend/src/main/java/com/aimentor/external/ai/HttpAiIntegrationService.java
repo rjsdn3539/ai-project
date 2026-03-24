@@ -6,6 +6,8 @@ import com.aimentor.external.ai.dto.AiGenerateInterviewQuestionsRequest;
 import com.aimentor.external.ai.dto.AiGenerateInterviewQuestionsResponse;
 import com.aimentor.external.ai.dto.AiGenerateReportSummaryRequest;
 import com.aimentor.external.ai.dto.AiGenerateReportSummaryResponse;
+import com.aimentor.external.ai.dto.AiParseJobPostingRequest;
+import com.aimentor.external.ai.dto.AiParseJobPostingResponse;
 import com.aimentor.external.ai.dto.AiQuestionItem;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -90,6 +92,21 @@ public class HttpAiIntegrationService implements AiIntegrationService {
                 response.get("recommendedAnswer").asString(),
                 "python-ai",
                 false
+        );
+    }
+
+    @Override
+    public AiParseJobPostingResponse parseJobPosting(AiParseJobPostingRequest request) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        if (request.url() != null && !request.url().isBlank()) body.put("url", request.url());
+        if (request.content() != null && !request.content().isBlank()) body.put("content", request.content());
+
+        JsonNode response = postJson("/interview/job-posting/parse", body);
+
+        return new AiParseJobPostingResponse(
+                response.get("companyName").asString(),
+                response.get("positionTitle").asString(),
+                response.get("description").asString()
         );
     }
 

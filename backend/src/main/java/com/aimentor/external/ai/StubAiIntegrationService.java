@@ -1,12 +1,7 @@
 package com.aimentor.external.ai;
 
-import com.aimentor.external.ai.dto.AiAnalyzeAnswerFeedbackRequest;
-import com.aimentor.external.ai.dto.AiAnalyzeAnswerFeedbackResponse;
-import com.aimentor.external.ai.dto.AiGenerateInterviewQuestionsRequest;
-import com.aimentor.external.ai.dto.AiGenerateInterviewQuestionsResponse;
-import com.aimentor.external.ai.dto.AiGenerateReportSummaryRequest;
-import com.aimentor.external.ai.dto.AiGenerateReportSummaryResponse;
-import com.aimentor.external.ai.dto.AiQuestionItem;
+import com.aimentor.external.ai.dto.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -25,11 +20,14 @@ public class StubAiIntegrationService implements AiIntegrationService {
     @Override
     public AiGenerateInterviewQuestionsResponse generateInterviewQuestions(AiGenerateInterviewQuestionsRequest request) {
         List<AiQuestionItem> questions = new ArrayList<>();
-        int questionCount = Math.max(1, request.questionCount());
+        int questionCount = request == null ? 1 : Math.max(1, request.questionCount());
+        String positionTitle = request == null || request.positionTitle() == null || request.positionTitle().isBlank()
+                ? "직무명 없음 (Stub)"
+                : request.positionTitle();
         for (int index = 1; index <= questionCount; index++) {
             questions.add(new AiQuestionItem(
                     index,
-                    "Stub question " + index + " for " + request.positionTitle() + ". Replace with real AI provider output."
+                    "Stub question " + index + " for " + positionTitle + ". Replace with real AI provider output."
             ));
         }
 
@@ -39,7 +37,7 @@ public class StubAiIntegrationService implements AiIntegrationService {
 
     @Override
     public AiAnalyzeAnswerFeedbackResponse analyzeAnswerFeedback(AiAnalyzeAnswerFeedbackRequest request) {
-        int answerLength = request.answerText() == null ? 0 : request.answerText().trim().length();
+        int answerLength = request == null || request.answerText() == null ? 0 : request.answerText().trim().length();
         int relevanceScore = Math.min(100, 50 + (answerLength / 20));
         int logicScore = Math.min(100, 45 + (answerLength / 25));
         int specificityScore = Math.min(100, 40 + (answerLength / 18));
@@ -66,6 +64,24 @@ public class StubAiIntegrationService implements AiIntegrationService {
                 resolveProviderName(),
                 true
         );
+    }
+
+    @Override
+    public AiParseJobPostingResponse parseJobPosting(AiParseJobPostingRequest request) {
+        // Return a safe stub response instead of null to avoid NPEs in callers.
+        String defaultCompany = "회사명 없음 (Stub)";
+        String defaultPosition = request == null || request.url() == null || request.url().isBlank()
+                ? "직무명 없음 (Stub)"
+                : "직무명 (Stub)";
+        String defaultDescription = "채용공고 내용이 없습니다. URL 또는 내용을 입력해 주세요. (Stub)";
+
+        if (request != null && request.content() != null && !request.content().isBlank()) {
+            defaultDescription = request.content().length() > 200
+                    ? request.content().substring(0, 200) + "... (Stub: 요약)"
+                    : request.content() + " (Stub: 원문 일부)";
+        }
+
+        return new AiParseJobPostingResponse(defaultCompany, defaultPosition, defaultDescription);
     }
 
     private String resolveProviderName() {

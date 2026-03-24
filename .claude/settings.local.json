@@ -32,7 +32,11 @@
       "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/.gradle -name *.jar)",
       "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend -name *.jar)",
       "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/build/classes -name HttpAiIntegrationService*.class -o -name HttpAiIntegrationService.class)",
-      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/bin -name HttpAiIntegrationService*.class)"
+      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/bin -name HttpAiIntegrationService*.class)",
+      "Bash(grep -r \"recommendedAnswer\\\\|모범\" C:UsersMVideosai-interview-platform-main --include=*.java --include=*.jsx --include=*.js --include=*.py)",
+      "Bash(powershell -Command \":*)",
+      "Bash(npx vite:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

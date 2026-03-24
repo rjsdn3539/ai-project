@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import { generatePlacementProblems } from '../api/learning'
 
 const LEVEL_LABEL = { 1: '기초', 2: '중급', 3: '고급' }
-const LEVEL_COLOR = { 1: '#22c55e', 2: '#f59e0b', 3: '#ef4444' }
+const LEVEL_COLOR = { 1: 'var(--success)', 2: 'var(--warning)', 3: '#ef4444' }
 const SUBJECT_ICON = { 영어: '🇺🇸', 국사: '📜', 파이썬: '🐍', 자바스크립트: '🟨', 'C++': '⚡', 일본어: '🇯🇵', 데이터베이스: '🗄️', 자바: '☕', 스프링: '🍃' }
 
 function getRecommendedDifficulty(score, total) {
@@ -15,9 +15,9 @@ function getRecommendedDifficulty(score, total) {
 }
 
 const DIFF = {
-  EASY:   { label: '쉬움',   color: '#22c55e', bg: '#f0fdf4', comment: '기초 개념을 탄탄히 다지는 것이 중요합니다. 쉬운 문제부터 차근차근 시작해봐요!' },
-  MEDIUM: { label: '보통',   color: '#f59e0b', bg: '#fffbeb', comment: '기본기는 갖추셨네요! 조금 더 심화 내용을 공부하면 실력이 크게 늘 거예요.' },
-  HARD:   { label: '어려움', color: '#ef4444', bg: '#fef2f2', comment: '상당한 실력을 갖추셨습니다! 어려운 문제로 실력을 더욱 높여봐요.' },
+  EASY:   { label: '쉬움',   color: 'var(--success)', bg: 'var(--bg-success)', comment: '기초 개념을 탄탄히 다지는 것이 중요합니다. 쉬운 문제부터 차근차근 시작해봐요!' },
+  MEDIUM: { label: '보통',   color: 'var(--warning)', bg: 'var(--bg-warning)', comment: '기본기는 갖추셨네요! 조금 더 심화 내용을 공부하면 실력이 크게 늘 거예요.' },
+  HARD:   { label: '어려움', color: '#ef4444', bg: 'var(--bg-error)', comment: '상당한 실력을 갖추셨습니다! 어려운 문제로 실력을 더욱 높여봐요.' },
 }
 
 function WrongAnswerList({ answers }) {
@@ -31,8 +31,8 @@ function WrongAnswerList({ answers }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {wrong.map((a, i) => (
           <div key={i} style={{
-            background: '#fff', borderRadius: 12, padding: '16px 18px',
-            border: '1px solid #fecaca', borderLeft: '3px solid #ef4444',
+            background: 'var(--surface)', borderRadius: 12, padding: '16px 18px',
+            border: '1px solid var(--border-error)', borderLeft: '3px solid var(--danger)',
             boxShadow: 'var(--shadow-sm)',
           }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -44,13 +44,13 @@ function WrongAnswerList({ answers }) {
               {a.question}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fef2f2', borderRadius: 7, padding: '7px 10px' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--bg-error)', borderRadius: 7, padding: '7px 10px' }}>
                 <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 12 }}>✕ 내 답변</span>
-                <span style={{ fontSize: 13, color: '#991b1b' }}>{a.selected}</span>
+                <span style={{ fontSize: 13, color: 'var(--danger)' }}>{a.selected}</span>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#f0fdf4', borderRadius: 7, padding: '7px 10px' }}>
-                <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 12 }}>✓ 정답</span>
-                <span style={{ fontSize: 13, color: '#166534' }}>{a.answer}</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--bg-success)', borderRadius: 7, padding: '7px 10px' }}>
+                <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: 12 }}>✓ 정답</span>
+                <span style={{ fontSize: 13, color: 'var(--success)' }}>{a.answer}</span>
               </div>
             </div>
           </div>
@@ -128,7 +128,7 @@ function PlacementTestPage() {
         </div>
 
         <div style={{
-          background: '#fff', borderRadius: 14, padding: '24px',
+          background: 'var(--surface)', borderRadius: 14, padding: '24px',
           boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
           textAlign: 'left', marginBottom: 20,
         }}>
@@ -179,7 +179,7 @@ function PlacementTestPage() {
       <div style={{ maxWidth: 580, margin: '0 auto', paddingTop: 10 }}>
         {/* Result card */}
         <div style={{
-          background: '#fff', borderRadius: 18, padding: '36px',
+          background: 'var(--surface)', borderRadius: 18, padding: '36px',
           boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-light)',
           textAlign: 'center', marginBottom: 16,
         }}>
@@ -187,7 +187,7 @@ function PlacementTestPage() {
           <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>테스트 완료!</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 20, fontSize: 14 }}>
             {questions.length}문제 중{' '}
-            <strong style={{ color: '#22c55e' }}>{correctCount}개 정답</strong>
+            <strong style={{ color: 'var(--success)' }}>{correctCount}개 정답</strong>
             &nbsp;·&nbsp;
             <strong style={{ color: '#ef4444' }}>{wrongCount}개 오답</strong>
           </p>
@@ -213,7 +213,7 @@ function PlacementTestPage() {
 
         {/* Subject selection */}
         <div style={{
-          background: '#fff', borderRadius: 14, padding: '24px',
+          background: 'var(--surface)', borderRadius: 14, padding: '24px',
           boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
           marginTop: 16,
         }}>
@@ -227,11 +227,11 @@ function PlacementTestPage() {
                 onClick={() => handleStartLearning(s)}
                 style={{
                   padding: '16px 8px', borderRadius: 12, border: '2px solid var(--border)',
-                  background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 14,
+                  background: 'var(--surface)', cursor: 'pointer', fontWeight: 600, fontSize: 14,
                   fontFamily: 'inherit', transition: 'all 0.15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4f46e5'; e.currentTarget.style.background = '#eef2ff' }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = '#fff' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4f46e5'; e.currentTarget.style.background = 'var(--bg-indigo)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface)' }}
               >
                 <div style={{ fontSize: 26, marginBottom: 5 }}>{SUBJECT_ICON[s]}</div>
                 {s}
@@ -255,14 +255,14 @@ function PlacementTestPage() {
     <div style={{ maxWidth: 580, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>수준 진단 테스트</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#4f46e5' }}>{currentIdx + 1} / {questions.length}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>{currentIdx + 1} / {questions.length}</span>
       </div>
       <div style={{ height: 5, background: 'var(--border)', borderRadius: 99, marginBottom: 24 }}>
         <div style={{ height: '100%', background: '#4f46e5', borderRadius: 99, width: `${progress}%`, transition: 'width 0.3s' }} />
       </div>
 
       <div style={{
-        background: '#fff', borderRadius: 14, padding: '28px',
+        background: 'var(--surface)', borderRadius: 14, padding: '28px',
         boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
       }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
@@ -292,13 +292,13 @@ function PlacementTestPage() {
                   padding: '13px 16px', borderRadius: 10, textAlign: 'left',
                   cursor: 'pointer', fontSize: 14, fontFamily: 'inherit',
                   border: `2px solid ${isSel ? '#4f46e5' : 'var(--border)'}`,
-                  background: isSel ? '#eef2ff' : 'var(--bg)',
-                  color: isSel ? '#3730a3' : 'var(--text)',
+                  background: isSel ? 'var(--bg-indigo)' : 'var(--bg)',
+                  color: isSel ? 'var(--primary)' : 'var(--text)',
                   fontWeight: isSel ? 600 : 400,
                   transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', gap: 10,
                 }}
-                onMouseEnter={(e) => { if (!isSel) { e.currentTarget.style.borderColor = '#a5b4fc'; e.currentTarget.style.background = '#f8f8ff' } }}
+                onMouseEnter={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--primary-light)'; e.currentTarget.style.background = 'var(--surface)' } }}
                 onMouseLeave={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)' } }}
               >
                 <span style={{

@@ -1,8 +1,27 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from schemas.learning_schema import GenerateRequest, GenerateResponse, GradeRequest, GradeResponse, PlacementGenerateRequest, PlacementGenerateResponse, HintRequest, HintResponse
 from services import learning_service
 
 router = APIRouter()
+
+
+@router.post("/generate/stream")
+async def generate_problems_stream(req: GenerateRequest):
+    """학습 문제 스트리밍 생성 - 완료되는 순서대로 SSE로 전송"""
+    async def event_stream():
+        try:
+            async for problem in learning_service.generate_problems_stream(
+                subject=req.subject,
+                difficulty=req.difficulty,
+                count=req.count,
+            ):
+                yield f"data: {problem.model_dump_json()}\n\n"
+        except Exception as e:
+            yield f"data: {{\"error\": \"{str(e)}\"}}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.post("/generate", response_model=GenerateResponse)

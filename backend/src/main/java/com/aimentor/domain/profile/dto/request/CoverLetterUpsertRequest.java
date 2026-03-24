@@ -8,7 +8,6 @@ public record CoverLetterUpsertRequest(
         @Size(max = 100, message = "자기소개서 제목은 100자 이하여야 합니다.")
         String title,
 
-        @NotBlank(message = "회사명은 필수입니다.")
         @Size(max = 100, message = "회사명은 100자 이하여야 합니다.")
         String companyName,
 

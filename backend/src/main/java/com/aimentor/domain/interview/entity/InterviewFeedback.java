@@ -15,9 +15,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Stores the feedback generated for an interview session.
- */
 @Getter
 @Entity
 @Table(name = "interview_feedback")
@@ -45,12 +42,15 @@ public class InterviewFeedback extends BaseTimeEntity {
     private Integer overallScore;
 
     @Column(nullable = false, length = 2000)
+    private String summary;
+
+    @Column(length = 1000)
     private String weakPoints;
 
-    @Column(nullable = false, length = 2000)
+    @Column(length = 1000)
     private String improvements;
 
-    @Column(nullable = false, length = 3000)
+    @Column(length = 2000)
     private String recommendedAnswer;
 
     @Builder
@@ -60,6 +60,7 @@ public class InterviewFeedback extends BaseTimeEntity {
             Integer logicScore,
             Integer specificityScore,
             Integer overallScore,
+            String summary,
             String weakPoints,
             String improvements,
             String recommendedAnswer
@@ -69,6 +70,7 @@ public class InterviewFeedback extends BaseTimeEntity {
         this.logicScore = logicScore;
         this.specificityScore = specificityScore;
         this.overallScore = overallScore;
+        this.summary = summary;
         this.weakPoints = weakPoints;
         this.improvements = improvements;
         this.recommendedAnswer = recommendedAnswer;
@@ -79,6 +81,7 @@ public class InterviewFeedback extends BaseTimeEntity {
             Integer logicScore,
             Integer specificityScore,
             Integer overallScore,
+            String summary,
             String weakPoints,
             String improvements,
             String recommendedAnswer
@@ -87,6 +90,7 @@ public class InterviewFeedback extends BaseTimeEntity {
         this.logicScore = logicScore;
         this.specificityScore = specificityScore;
         this.overallScore = overallScore;
+        this.summary = summary;
         this.weakPoints = weakPoints;
         this.improvements = improvements;
         this.recommendedAnswer = recommendedAnswer;

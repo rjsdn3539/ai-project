@@ -14,7 +14,7 @@ class Problem(BaseModel):
     question: str
     choices: Optional[List[str]] = None
     answer: str
-    explanation: str
+    explanation: Optional[str] = None
 
 
 class GenerateResponse(BaseModel):
@@ -25,7 +25,7 @@ class GradeRequest(BaseModel):
     question: str
     correctAnswer: str
     userAnswer: str
-    explanation: str
+    explanation: Optional[str] = None
 
 
 class GradeResponse(BaseModel):

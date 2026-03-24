@@ -1,10 +1,10 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 
 const SUBJECT_ICON = { 영어: '🇺🇸', 국사: '📜', 파이썬: '🐍', 자바스크립트: '🟨', 'C++': '⚡', 일본어: '🇯🇵', 데이터베이스: '🗄️', 자바: '☕', 스프링: '🍃' }
 const DIFF_LABEL = { EASY: '쉬움', MEDIUM: '보통', HARD: '어려움' }
-const DIFF_COLOR = { EASY: '#22c55e', MEDIUM: '#f59e0b', HARD: '#ef4444' }
+const DIFF_COLOR = { EASY: 'var(--success)', MEDIUM: 'var(--warning)', HARD: '#ef4444' }
 
 function WrongNotesPage() {
   const navigate = useNavigate()
@@ -12,14 +12,12 @@ function WrongNotesPage() {
   const [filterSubject, setFilterSubject] = useState('전체')
   const [expandedId, setExpandedId] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [undoQueue, setUndoQueue] = useState([])
 
   const subjects = ['전체', ...Array.from(new Set(notes.map(n => n.subject)))]
   const filtered = filterSubject === '전체' ? notes : notes.filter(n => n.subject === filterSubject)
 
-  // 날짜 기준 최신순 정렬
   const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date))
-
-  // 날짜별 그룹
   const grouped = sorted.reduce((acc, note) => {
     const d = note.date
     if (!acc[d]) acc[d] = []
@@ -28,9 +26,27 @@ function WrongNotesPage() {
   }, {})
 
   const handleDelete = (id) => {
+    const item = notes.find(n => n.id === id)
+    if (!item) return
     const updated = notes.filter(n => n.id !== id)
     setNotes(updated)
     localStorage.setItem('wrongNotes', JSON.stringify(updated))
+
+    const timer = setTimeout(() => {
+      setUndoQueue(q => q.filter(u => u.id !== id))
+    }, 4000)
+    setUndoQueue(q => [...q, { id, item, timer }])
+  }
+
+  const handleUndo = (id) => {
+    const entry = undoQueue.find(u => u.id === id)
+    if (!entry) return
+    clearTimeout(entry.timer)
+    setUndoQueue(q => q.filter(u => u.id !== id))
+    const current = JSON.parse(localStorage.getItem('wrongNotes') || '[]')
+    const restored = [...current, entry.item]
+    localStorage.setItem('wrongNotes', JSON.stringify(restored))
+    setNotes(restored)
   }
 
   const handleClearAll = () => {
@@ -79,7 +95,7 @@ function WrongNotesPage() {
                 padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                 border: `1.5px solid ${filterSubject === s ? '#4f46e5' : 'var(--border)'}`,
-                background: filterSubject === s ? '#4f46e5' : '#fff',
+                background: filterSubject === s ? '#4f46e5' : 'var(--surface)',
                 color: filterSubject === s ? '#fff' : 'var(--text-secondary)',
               }}>
                 {s !== '전체' ? `${SUBJECT_ICON[s] || '📚'} ` : ''}{s}
@@ -100,8 +116,8 @@ function WrongNotesPage() {
                   const expanded = expandedId === note.id
                   return (
                     <div key={note.id} style={{
-                      background: '#fff', borderRadius: 14,
-                      border: '1px solid #fecaca', borderLeft: '4px solid #ef4444',
+                      background: 'var(--surface)', borderRadius: 14,
+                      border: '1px solid var(--border-error)', borderLeft: '4px solid var(--danger)',
                       boxShadow: 'var(--shadow-sm)', overflow: 'hidden',
                     }}>
                       {/* Note header */}
@@ -111,7 +127,7 @@ function WrongNotesPage() {
                       >
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                            <span style={{ background: '#f3f4f6', color: 'var(--text)', fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 20 }}>
+                            <span style={{ background: 'var(--bg-warm)', color: 'var(--text)', fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 20 }}>
                               {SUBJECT_ICON[note.subject] || '📚'} {note.subject}
                             </span>
                             {note.difficulty && (
@@ -128,29 +144,31 @@ function WrongNotesPage() {
                           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{expanded ? '▲' : '▼'}</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(note.id) }}
-                            style={{ background: 'none', border: 'none', color: '#d1d5db', cursor: 'pointer', fontSize: 16, padding: '2px 4px', lineHeight: 1 }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18, padding: '2px 4px', lineHeight: 1, transition: 'color 0.15s' }}
                             title="삭제"
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                           >×</button>
                         </div>
                       </div>
 
                       {/* Expanded detail */}
                       {expanded && (
-                        <div style={{ borderTop: '1px solid #fee2e2', padding: '16px 18px', background: '#fffafa' }}>
+                        <div style={{ borderTop: '1px solid #fee2e2', padding: '16px 18px', background: 'var(--surface)' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: '#fef2f2', borderRadius: 8, padding: '8px 12px' }}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'var(--bg-error)', borderRadius: 8, padding: '8px 12px' }}>
                               <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✕ 내 답변</span>
-                              <span style={{ fontSize: 13, color: '#991b1b' }}>{note.userAnswer || '(미입력)'}</span>
+                              <span style={{ fontSize: 13, color: 'var(--danger)' }}>{note.userAnswer || '(미입력)'}</span>
                             </div>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: '#f0fdf4', borderRadius: 8, padding: '8px 12px' }}>
-                              <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓ 정답</span>
-                              <span style={{ fontSize: 13, color: '#166534' }}>{note.answer}</span>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'var(--bg-success)', borderRadius: 8, padding: '8px 12px' }}>
+                              <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓ 정답</span>
+                              <span style={{ fontSize: 13, color: 'var(--success)' }}>{note.answer}</span>
                             </div>
                           </div>
                           {note.aiFeedback && (
-                            <div style={{ background: '#eef2ff', borderRadius: 8, padding: '10px 12px', border: '1px solid #c7d2fe' }}>
-                              <p style={{ fontSize: 11, color: '#4f46e5', fontWeight: 700, marginBottom: 4 }}>AI 해설</p>
-                              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7 }}>{note.aiFeedback}</p>
+                            <div style={{ background: 'var(--bg-indigo)', borderRadius: 8, padding: '10px 12px', border: '1px solid var(--border-indigo)' }}>
+                              <p style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 700, marginBottom: 4 }}>AI 해설</p>
+                              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{note.aiFeedback}</p>
                             </div>
                           )}
                         </div>
@@ -162,6 +180,35 @@ function WrongNotesPage() {
             </div>
           ))}
         </>
+      )}
+
+      {/* Undo 토스트 */}
+      {undoQueue.length > 0 && (
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+          {undoQueue.map((entry) => (
+            <div key={entry.id} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: '#18181b', color: '#fff',
+              borderRadius: 14, padding: '13px 18px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+              animation: 'fadeIn 0.2s ease',
+              minWidth: 300,
+            }}>
+              <span style={{ fontSize: 13, flex: 1 }}>
+                🗑️ <b style={{ fontWeight: 700 }}>{entry.item.question?.slice(0, 24)}...</b> 삭제됨
+              </span>
+              <button
+                onClick={() => handleUndo(entry.id)}
+                style={{
+                  background: '#7c6af0', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '6px 16px',
+                  fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                }}
+              >실행취소</button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

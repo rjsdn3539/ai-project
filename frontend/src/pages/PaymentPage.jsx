@@ -1,9 +1,10 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import useCartStore from '../store/cartStore'
 import { requestPayment, PAYMENT_METHODS } from '../utils/payment'
 import { upgradeSubscription } from '../api/subscription'
+import { createOrder } from '../api/order'
 
 function PaymentPage() {
   const location = useLocation()
@@ -13,7 +14,7 @@ function PaymentPage() {
 
   const state = location.state || {}
   // state fields: orderName, totalAmount, type ('subscription'|'cart'), items[], planName, billing, backTo
-  const { orderName, totalAmount, type, items = [], planName, billing, backTo = '/' } = state
+  const { orderName, totalAmount, type, items = [], planName, billing, backTo = '/', deliveryAddress } = state
 
   const [selectedMethod, setSelectedMethod] = useState(null)
   const [customerName, setCustomerName] = useState(user?.name || '')
@@ -47,18 +48,18 @@ function PaymentPage() {
     return (
       <div style={{ maxWidth: 480, margin: '60px auto', textAlign: 'center' }}>
         <div style={{
-          background: '#fff', borderRadius: 24, padding: '56px 40px',
+          background: 'var(--surface)', borderRadius: 24, padding: '56px 40px',
           boxShadow: 'var(--shadow)', border: '1px solid var(--border-light)',
         }}>
           <div style={{ fontSize: 64, marginBottom: 20 }}>🎉</div>
           <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>결제 완료!</h2>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 6 }}>{orderName}</p>
-          <p style={{ fontSize: 22, fontWeight: 800, color: '#4f46e5', marginBottom: 24 }}>
+          <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)', marginBottom: 24 }}>
             {totalAmount.toLocaleString()}원
           </p>
           <div style={{
-            background: '#f8faff', borderRadius: 12, padding: '14px 18px',
-            border: '1px solid #e0e7ff', marginBottom: 32, textAlign: 'left',
+            background: 'var(--surface)', borderRadius: 12, padding: '14px 18px',
+            border: '1px solid var(--border-indigo)', marginBottom: 32, textAlign: 'left',
           }}>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>주문번호</p>
             <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', wordBreak: 'break-all' }}>{resultId}</p>
@@ -96,8 +97,40 @@ function PaymentPage() {
     })
     setPaying(false)
     if (result.success) {
-      if (type === 'cart') clearCart()
+      if (type === 'cart') {
+        try {
+          await createOrder({
+            orderType: 'BOOK',
+            totalAmount,
+            paymentMethod: method.label,
+            paymentId: result.paymentId,
+            orderName,
+            items: items.map((item) => ({
+              bookId: item.bookId,
+              bookTitle: item.title || item.bookTitle || '도서',
+              quantity: item.quantity,
+              unitPrice: item.price || item.unitPrice || 0,
+            })),
+            deliveryAddress: deliveryAddress || null,
+            recipientName: customerName.trim() || null,
+          })
+        } catch (err) {
+          console.error('[createOrder] 주문 생성 실패:', err?.response?.data || err)
+        }
+        clearCart()
+      }
       if (type === 'subscription' && state.planTier) {
+        try {
+          await createOrder({
+            orderType: 'SUBSCRIPTION',
+            totalAmount,
+            paymentMethod: method.label,
+            paymentId: result.paymentId,
+            orderName,
+          })
+        } catch (err) {
+          console.error('[createOrder] 구독 주문 생성 실패:', err?.response?.data || err)
+        }
         try {
           await upgradeSubscription(state.planTier, billing)
         } catch {}
@@ -132,7 +165,7 @@ function PaymentPage() {
 
           {/* Customer info */}
           <div style={{
-            background: '#fff', borderRadius: 16, padding: '28px',
+            background: 'var(--surface)', borderRadius: 16, padding: '28px',
             boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--border-light)',
           }}>
             <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 20 }}>구매자 정보</h2>
@@ -148,7 +181,7 @@ function PaymentPage() {
                   style={{
                     width: '100%', padding: '11px 13px', boxSizing: 'border-box',
                     border: `1.5px solid ${nameFocused ? '#4f46e5' : 'var(--border)'}`,
-                    borderRadius: 9, fontSize: 14, color: 'var(--text)', background: '#fff',
+                    borderRadius: 9, fontSize: 14, color: 'var(--text)', background: 'var(--surface)',
                     outline: 'none', fontFamily: 'inherit', transition: 'all 0.15s',
                     boxShadow: nameFocused ? '0 0 0 3px rgba(79,70,229,0.08)' : 'none',
                   }}
@@ -166,7 +199,7 @@ function PaymentPage() {
                   style={{
                     width: '100%', padding: '11px 13px', boxSizing: 'border-box',
                     border: `1.5px solid ${emailFocused ? '#4f46e5' : 'var(--border)'}`,
-                    borderRadius: 9, fontSize: 14, color: 'var(--text)', background: '#fff',
+                    borderRadius: 9, fontSize: 14, color: 'var(--text)', background: 'var(--surface)',
                     outline: 'none', fontFamily: 'inherit', transition: 'all 0.15s',
                     boxShadow: emailFocused ? '0 0 0 3px rgba(79,70,229,0.08)' : 'none',
                   }}
@@ -177,7 +210,7 @@ function PaymentPage() {
 
           {/* Payment method */}
           <div style={{
-            background: '#fff', borderRadius: 16, padding: '28px',
+            background: 'var(--surface)', borderRadius: 16, padding: '28px',
             boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--border-light)',
           }}>
             <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 20 }}>결제 수단</h2>
@@ -192,7 +225,7 @@ function PaymentPage() {
                       display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px',
                       borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
                       border: `2px solid ${selected ? '#4f46e5' : 'var(--border)'}`,
-                      background: selected ? '#eef2ff' : '#fff',
+                      background: selected ? 'var(--bg-indigo)' : 'var(--surface)',
                       transition: 'all 0.15s', textAlign: 'left',
                     }}
                   >
@@ -206,11 +239,11 @@ function PaymentPage() {
                     <div style={{
                       width: 20, height: 20, borderRadius: '50%',
                       border: `2px solid ${selected ? '#4f46e5' : 'var(--border)'}`,
-                      background: selected ? '#4f46e5' : '#fff',
+                      background: selected ? '#4f46e5' : 'var(--surface)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0, transition: 'all 0.15s',
                     }}>
-                      {selected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
+                      {selected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--surface)' }} />}
                     </div>
                   </button>
                 )
@@ -224,7 +257,7 @@ function PaymentPage() {
 
           {/* Order summary */}
           <div style={{
-            background: '#fff', borderRadius: 16, padding: '28px',
+            background: 'var(--surface)', borderRadius: 16, padding: '28px',
             boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--border-light)',
           }}>
             <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 20 }}>주문 요약</h2>
@@ -233,9 +266,9 @@ function PaymentPage() {
               <div style={{
                 background: 'linear-gradient(135deg, #eef2ff, #f5f3ff)',
                 borderRadius: 12, padding: '16px', marginBottom: 20,
-                border: '1px solid #c7d2fe',
+                border: '1px solid var(--border-indigo)',
               }}>
-                <p style={{ fontSize: 13, color: '#6366f1', fontWeight: 700, marginBottom: 4 }}>
+                <p style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 700, marginBottom: 4 }}>
                   {planName} 플랜
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -268,7 +301,7 @@ function PaymentPage() {
             <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>총 결제금액</span>
-                <span style={{ fontSize: 22, fontWeight: 800, color: '#4f46e5' }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)' }}>
                   {totalAmount.toLocaleString()}
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>원</span>
                 </span>
@@ -278,12 +311,12 @@ function PaymentPage() {
 
           {/* Pay button */}
           <div style={{
-            background: '#fff', borderRadius: 16, padding: '24px',
+            background: 'var(--surface)', borderRadius: 16, padding: '24px',
             boxShadow: 'var(--shadow-sm)', border: '1.5px solid var(--border-light)',
           }}>
             {payError && (
               <div style={{
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
+                background: 'var(--bg-error)', border: '1px solid var(--border-error)', borderRadius: 10,
                 padding: '11px 14px', marginBottom: 14,
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>

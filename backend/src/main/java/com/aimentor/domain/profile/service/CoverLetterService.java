@@ -12,6 +12,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,12 +21,15 @@ public class CoverLetterService {
     private final CoverLetterRepository coverLetterRepository;
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
+    private final ProfileDocumentTextExtractor documentTextExtractor;
 
     public CoverLetterService(CoverLetterRepository coverLetterRepository, UserRepository userRepository,
-                              SubscriptionService subscriptionService) {
+                              SubscriptionService subscriptionService,
+                              ProfileDocumentTextExtractor documentTextExtractor) {
         this.coverLetterRepository = coverLetterRepository;
         this.userRepository = userRepository;
         this.subscriptionService = subscriptionService;
+        this.documentTextExtractor = documentTextExtractor;
     }
 
     @Transactional
@@ -36,6 +40,19 @@ public class CoverLetterService {
                 .title(request.title())
                 .companyName(request.companyName())
                 .content(request.content())
+                .build();
+        return toResponse(coverLetterRepository.save(coverLetter));
+    }
+
+    @Transactional
+    public CoverLetterResponse createFromFile(Long userId, String title, String companyName, MultipartFile file) {
+        User user = getUser(userId);
+        String extractedContent = documentTextExtractor.extract(file);
+        CoverLetter coverLetter = CoverLetter.builder()
+                .user(user)
+                .title(title)
+                .companyName(companyName)
+                .content(extractedContent)
                 .build();
         return toResponse(coverLetterRepository.save(coverLetter));
     }
