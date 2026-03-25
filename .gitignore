@@ -84,3 +84,5 @@ ai-server/*.egg-info/
 /dist/
 /nbdist/
 /.nb-gradle/
+
+backend/.gradle-user/
