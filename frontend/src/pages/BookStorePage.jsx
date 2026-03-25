@@ -48,13 +48,33 @@ function BookCard({ book, onAddCart, onNavigate, onLoginRequired }) {
       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
     >
-      {/* Cover */}
       <div style={{
         height: 180, background: bgColor,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 56, flexShrink: 0, position: 'relative',
+        fontSize: 56, flexShrink: 0, position: 'relative', overflow: 'hidden',
       }}>
-        📚
+        {book.coverUrl ? (
+          <img
+            src={book.coverUrl}
+            alt={book.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              const fallback = e.currentTarget.nextSibling
+              if (fallback) fallback.style.display = 'flex'
+            }}
+          />
+        ) : null}
+        <div style={{
+          display: book.coverUrl ? 'none' : 'flex',
+          width: '100%',
+          height: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 56,
+        }}>
+          📚
+        </div>
         {book.stock === 0 && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ background: '#e05252', color: '#fff', borderRadius: 8, padding: '5px 14px', fontSize: 13, fontWeight: 800 }}>품절</span>
@@ -62,7 +82,6 @@ function BookCard({ book, onAddCart, onNavigate, onLoginRequired }) {
         )}
       </div>
 
-      {/* Content */}
       <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h3 style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', marginBottom: 4, lineHeight: 1.5 }}>{book.title}</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>{book.author}</p>
@@ -99,8 +118,12 @@ function BookCard({ book, onAddCart, onNavigate, onLoginRequired }) {
 }
 
 function BookStorePage() {
-  const [books, setBooks]   = useState([])
+  const [books, setBooks] = useState([])
   const [keyword, setKeyword] = useState('')
+  const [submittedKeyword, setSubmittedKeyword] = useState('')
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
   const [loading, setLoading] = useState(true)
   const [focused, setFocused] = useState(false)
   const [loginToast, setLoginToast] = useState(false)
@@ -117,28 +140,38 @@ function BookStorePage() {
     return false
   }
 
-  const fetchBooks = async (kw = '') => {
+  const fetchBooks = async (kw = '', nextPage = 0) => {
     setLoading(true)
     try {
-      const { data } = await bookApi.getBooks(kw)
-      setBooks(data.data?.content || data.data || [])
+      const { data } = await bookApi.getBooks(kw, nextPage)
+      setBooks(data.data?.content || [])
+      setTotalPages(data.data?.totalPages || 0)
+      setTotalElements(data.data?.totalElements || 0)
+      setPage(data.data?.currentPage ?? nextPage)
     } catch {
       setBooks(MOCK_BOOKS.filter((b) => !kw || b.title.includes(kw) || b.author.includes(kw)))
+      setTotalPages(1)
+      setTotalElements(MOCK_BOOKS.length)
+      setPage(0)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchBooks() }, [])
+  useEffect(() => {
+    fetchBooks(submittedKeyword, page)
+  }, [submittedKeyword, page])
 
   const handleSearch = (e) => {
     e.preventDefault()
-    fetchBooks(keyword)
+    setSubmittedKeyword(keyword.trim())
+    setPage(0)
   }
+
+  const pageNumbers = Array.from({ length: totalPages || 1 }, (_, index) => index)
 
   return (
     <div>
-      {/* 로그인 필요 토스트 */}
       {loginToast && (
         <div style={{
           position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
@@ -163,10 +196,11 @@ function BookStorePage() {
 
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>도서 스토어</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>면접 준비에 도움이 되는 도서를 만나보세요.</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+          면접 준비에 도움이 되는 도서를 만나보세요. {totalElements > 0 ? `총 ${totalElements}권` : ''}
+        </p>
       </div>
 
-      {/* Search */}
       <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 28, maxWidth: 440 }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 15 }}>🔍</span>
@@ -200,10 +234,73 @@ function BookStorePage() {
           <p>검색 결과가 없습니다</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
-          {books.map((book) => (
-            <BookCard key={book.id} book={book} onAddCart={addItem} onNavigate={(id) => navigate(`/books/${id}`)} onLoginRequired={requireLogin} />
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
+            {books.map((book) => (
+              <BookCard key={book.id} book={book} onAddCart={addItem} onNavigate={(id) => navigate(`/books/${id}`)} onLoginRequired={requireLogin} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                disabled={page === 0}
+                style={{
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  color: page === 0 ? 'var(--text-muted)' : 'var(--text)',
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                  cursor: page === 0 ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  fontWeight: 700,
+                }}
+              >
+                이전
+              </button>
+              {pageNumbers.map((pageNumber) => {
+                const selected = pageNumber === page
+                return (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setPage(pageNumber)}
+                    style={{
+                      minWidth: 38,
+                      border: `1px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
+                      background: selected ? 'var(--primary)' : 'var(--surface)',
+                      color: selected ? '#fff' : 'var(--text)',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {pageNumber + 1}
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                disabled={page >= totalPages - 1}
+                style={{
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  color: page >= totalPages - 1 ? 'var(--text-muted)' : 'var(--text)',
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                  cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  fontWeight: 700,
+                }}
+              >
+                다음
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

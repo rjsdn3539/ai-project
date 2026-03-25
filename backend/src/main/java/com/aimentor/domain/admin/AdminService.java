@@ -128,10 +128,13 @@ public class AdminService {
                 .title(req.title())
                 .author(req.author())
                 .publisher(req.publisher())
-                .price(req.price())
+                .priceSales(req.price())
+                .priceStandard(req.price())
                 .stock(req.stock())
                 .coverUrl(req.coverUrl())
                 .description(req.description())
+                .saleStatus("ON_SALE")
+                .source("MANUAL")
                 .build();
         bookRepository.save(book);
         return new BookSummary(book.getId(), book.getTitle(), book.getAuthor(), book.getPublisher(),

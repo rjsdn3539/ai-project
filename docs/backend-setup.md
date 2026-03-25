@@ -47,8 +47,8 @@ CREATE DATABASE aimentor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ```env
 DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=aimentor
+DB_PORT=3308
+DB_NAME=ai_interview
 DB_USERNAME=your_mariadb_username
 DB_PASSWORD=your_mariadb_password
 SPRING_PROFILES_ACTIVE=local

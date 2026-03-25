@@ -11,6 +11,10 @@ import com.aimentor.domain.admin.AdminService.SessionSummary;
 import com.aimentor.domain.admin.AdminService.UpdateDeliveryRequest;
 import com.aimentor.domain.admin.AdminService.UpdatePaymentStatusRequest;
 import com.aimentor.domain.admin.AdminService.UserSummary;
+import com.aimentor.domain.book.dto.request.SyncAladinBooksRequest;
+import com.aimentor.domain.book.dto.response.SyncAladinBooksResponse;
+import com.aimentor.domain.book.service.BookSyncService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
 
     private final AdminService adminService;
+    private final BookSyncService bookSyncService;
 
     // ── Dashboard ──────────────────────────────────────────────────────────────
 
@@ -124,6 +129,13 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable Long id) {
         adminService.deleteBook(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/books/sync/aladin")
+    public ApiResponse<SyncAladinBooksResponse> syncAladinBooks(
+            @Valid @RequestBody SyncAladinBooksRequest request
+    ) {
+        return ApiResponse.success(bookSyncService.syncAladinBooks(request));
     }
 
     // ── Orders (결제 관리) ─────────────────────────────────────────────────────

@@ -4,11 +4,11 @@ import com.aimentor.external.ai.dto.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 @Service
-@ConditionalOnMissingBean(AiIntegrationService.class)
+@ConditionalOnProperty(prefix = "integration.ai", name = "provider", havingValue = "stub-ai")
 public class StubAiIntegrationService implements AiIntegrationService {
 
     private final AiIntegrationProperties properties;

@@ -2,6 +2,7 @@ package com.aimentor.domain.order.service;
 
 import com.aimentor.common.exception.ApiException;
 import com.aimentor.domain.order.dto.CreateOrderRequest;
+import com.aimentor.domain.order.dto.response.BookOrderResponse;
 import com.aimentor.domain.order.entity.DeliveryStatus;
 import com.aimentor.domain.order.entity.Order;
 import com.aimentor.domain.order.entity.OrderItem;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -65,6 +67,39 @@ public class OrderService {
         return order;
     }
 
+    @Transactional(readOnly = true)
+    public List<BookOrderResponse> getBookOrders(Long userId) {
+        return orderRepository.findByUser_IdAndOrderTypeOrderByCreatedAtDesc(userId, OrderType.BOOK)
+                .stream()
+                .map(this::toBookOrderResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BookOrderResponse getBookOrder(Long userId, Long orderId) {
+        Order order = orderRepository.findByIdAndUser_IdAndOrderType(orderId, userId, OrderType.BOOK)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
+        return toBookOrderResponse(order);
+    }
+
+    private BookOrderResponse toBookOrderResponse(Order order) {
+        return new BookOrderResponse(
+                order.getId(),
+                order.getCreatedAt(),
+                order.getDeliveryStatus() != null ? order.getDeliveryStatus().name() : order.getPaymentStatus().name(),
+                order.getTotalAmount(),
+                order.getDeliveryAddress(),
+                order.getItems().stream()
+                        .map(item -> new BookOrderResponse.BookOrderItemResponse(
+                                item.getBookId(),
+                                item.getBookTitle(),
+                                item.getQuantity(),
+                                item.getUnitPrice()
+                        ))
+                        .toList()
+        );
+    }
+
     private String generateOrderNumber() {
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         int rand = ThreadLocalRandom.current().nextInt(1000, 9999);
@@ -76,3 +111,4 @@ public class OrderService {
         return candidate;
     }
 }
+
