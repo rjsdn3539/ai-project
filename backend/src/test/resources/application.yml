@@ -8,3 +8,7 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
+
+integration:
+  ai:
+    provider: stub-ai

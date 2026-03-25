@@ -1,10 +1,12 @@
-import api from './axios'
+﻿import api from './axios'
 
 export const getBooks = (keyword = '', page = 0) =>
-  api.get('/api/books', { params: { keyword, page } })
+  keyword
+    ? api.get('/api/v1/books/search', { params: { keyword, page, size: 15 } })
+    : api.get('/api/v1/books', { params: { page, size: 15 } })
 
 export const getBook = (id) =>
-  api.get(`/api/books/${id}`)
+  api.get(`/api/v1/books/${id}`)
 
 export const getCart = () =>
   api.get('/api/cart')

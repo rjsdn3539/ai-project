@@ -55,6 +55,15 @@ const DEFAULT_META = {
   toc: ['Chapter 1', 'Chapter 2', 'Chapter 3'],
 }
 
+function getDisplayMeta(book) {
+  const seeded = BOOK_META[book.id] || DEFAULT_META
+  return {
+    ...seeded,
+    desc: book.description || seeded.desc,
+    publisher: book.publisher || seeded.publisher,
+  }
+}
+
 
 // ── 별점 표시 컴포넌트 ────────────────────────────────────────────────────────
 function Stars({ rating, size = 16, interactive = false, onChange }) {
@@ -189,7 +198,7 @@ function BookDetailPage() {
   const colorIdx  = (book.id - 1) % BOOK_COLORS.length
   const bgColor   = BOOK_COLORS[colorIdx]
   const iconColor = BOOK_ICON_BG[colorIdx]
-  const meta      = BOOK_META[book.id] || DEFAULT_META
+  const meta      = getDisplayMeta(book)
   const inCart    = items.some((i) => i.bookId === book.id)
   const isSoldOut = book.stock === 0
 
@@ -247,7 +256,19 @@ function BookDetailPage() {
             {/* Decorative shapes */}
             <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />
             <div style={{ position: 'absolute', bottom: -40, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
-            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+            {book.coverUrl ? (
+              <img
+                src={book.coverUrl}
+                alt={book.title}
+                style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  const fallback = e.currentTarget.nextSibling
+                  if (fallback) fallback.style.display = 'block'
+                }}
+              />
+            ) : null}
+            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', display: book.coverUrl ? 'none' : 'block' }}>
               <div style={{ fontSize: 72, marginBottom: 12 }}>📚</div>
               <div style={{
                 background: iconColor, color: '#fff',

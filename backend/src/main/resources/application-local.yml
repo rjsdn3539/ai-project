@@ -12,3 +12,4 @@ integration:
   ai:
     provider: python-ai
     base-url: http://localhost:8000
+

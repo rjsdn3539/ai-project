@@ -1,6 +1,8 @@
-spring:
+﻿spring:
   application:
     name: backend
+  config:
+    import: optional:file:.env[.properties],optional:file:backend/.env[.properties]
   profiles:
     default: local
   jpa:
@@ -29,7 +31,7 @@ jwt:
 admin:
   email: ${ADMIN_EMAIL:admin@aimentor.com}
   password: ${ADMIN_PASSWORD:admin1234}
-  name: ${ADMIN_NAME:관리자}
+  name: ${ADMIN_NAME:admin}
 
 integration:
   ai:
@@ -42,3 +44,7 @@ integration:
     api-key: ${SPEECH_API_KEY:}
     base-url: ${SPEECH_BASE_URL:}
     voice: ${SPEECH_VOICE:}
+
+aladin:
+  base-url: http://www.aladin.co.kr/ttb/api
+  ttb-key: ${ALADIN_TTB_KEY:}

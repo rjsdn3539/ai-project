@@ -20,13 +20,13 @@ public class DataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("admin@admin.com")
+    @Value("${admin.email:admin@aimentor.com}")
     private String adminEmail;
 
-    @Value("${admin.password}")
+    @Value("${admin.password:admin1234}")
     private String adminPassword;
 
-    @Value("${admin.name}")
+    @Value("${admin.name:admin}")
     private String adminName;
 
     @Override
