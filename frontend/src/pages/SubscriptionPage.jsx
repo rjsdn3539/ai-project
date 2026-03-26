@@ -7,7 +7,7 @@ const PLANS = [
   {
     tier: 'FREE', name: '무료', monthlyPrice: 0, yearlyPrice: 0,
     color: 'var(--text-secondary)', accentBg: 'var(--bg-slate)',
-    features: ['면접 월 1회', '학습 퀴즈 일 20문제', '피드백 요약 제공', '프로필 문서 각 1개', '도서 구매 가능'],
+    features: ['면접 월 1회', '학습 퀴즈 일 20문제', '피드백 요약·점수 제공', '프로필 문서 각 1개', '도서 구매 가능'],
     icon: '🌱',
   },
   {
@@ -118,6 +118,11 @@ function SubscriptionPage() {
     if (!plan.monthlyPrice) return null
     return Math.round((1 - plan.yearlyPrice / (plan.monthlyPrice * 12)) * 100)
   }
+
+  const maxAnnualDiscount = PLANS.reduce((max, plan) => {
+    const discount = getDiscountPct(plan) || 0
+    return Math.max(max, discount)
+  }, 0)
 
   const formatPrice = (p) => p === 0 ? '무료' : p.toLocaleString('ko-KR') + '원'
 
@@ -302,7 +307,7 @@ function SubscriptionPage() {
         <div style={{ display: 'flex', background: 'var(--bg)', borderRadius: 10, padding: 4, border: '1px solid var(--border)' }}>
           {[
             { key: 'monthly', label: '월간 결제' },
-            { key: 'yearly', label: '연간 결제', badge: '최대 17% 할인' },
+            { key: 'yearly', label: '연간 결제', badge: `최대 ${maxAnnualDiscount}% 할인` },
           ].map(({ key, label, badge }) => (
             <button
               key={key}

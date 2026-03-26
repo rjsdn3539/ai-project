@@ -1,5 +1,10 @@
 import { create } from 'zustand'
 import * as authApi from '../api/auth'
+import {
+  AUTH_CLEARED_EVENT,
+  dispatchAuthChanged,
+  dispatchAuthCleared,
+} from '../utils/userScopedStorage'
 
 const savedUser = (() => {
   try { return JSON.parse(localStorage.getItem('user') || 'null') } catch { return null }
@@ -7,7 +12,7 @@ const savedUser = (() => {
 
 const useAuthStore = create((set) => {
   // axios 인터셉터가 토큰을 강제 삭제할 때 Zustand 상태도 동기화
-  window.addEventListener('auth:cleared', () => {
+  window.addEventListener(AUTH_CLEARED_EVENT, () => {
     set({ user: null, accessToken: null })
   })
 
@@ -23,12 +28,14 @@ const useAuthStore = create((set) => {
     localStorage.setItem('refreshToken', refreshToken)
     localStorage.setItem('user', JSON.stringify(user))
     set({ user, accessToken })
+    dispatchAuthChanged(user)
   },
 
   updateName: (name) => {
     set((state) => {
       const user = { ...state.user, name }
       localStorage.setItem('user', JSON.stringify(user))
+      dispatchAuthChanged(user)
       return { user }
     })
   },
@@ -37,6 +44,7 @@ const useAuthStore = create((set) => {
     set((state) => {
       const user = { ...state.user, subscriptionTier }
       localStorage.setItem('user', JSON.stringify(user))
+      dispatchAuthChanged(user)
       return { user }
     })
   },
@@ -48,6 +56,7 @@ const useAuthStore = create((set) => {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     set({ user: null, accessToken: null })
+    dispatchAuthCleared()
   },
   }
 })

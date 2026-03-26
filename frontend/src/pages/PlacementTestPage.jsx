@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
-import { generatePlacementProblems } from '../api/learning'
+import { generatePlacementProblems, saveLearningPreferences } from '../api/learning'
 
 const LEVEL_LABEL = { 1: '기초', 2: '중급', 3: '고급' }
 const LEVEL_COLOR = { 1: 'var(--success)', 2: 'var(--warning)', 3: '#ef4444' }
@@ -105,9 +105,15 @@ function PlacementTestPage() {
     }
   }
 
-  const handleStartLearning = (subject) => {
-    localStorage.setItem('placementDifficulty', difficulty)
-    localStorage.setItem('placementDone', 'true')
+  const handleStartLearning = async (subject) => {
+    try {
+      await saveLearningPreferences({
+        placementDifficulty: difficulty,
+        placementDone: true,
+      })
+    } catch {
+      // continue with the recommended difficulty even if sync fails
+    }
     navigate('/learning/session', { state: { subject, difficulty, count: 6 } })
   }
 

@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import * as authApi from '../api/auth'
 import Input from '../components/Input'
 import Button from '../components/Button'
@@ -8,7 +9,14 @@ function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', passwordConfirm: '', phone: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!showSuccessModal) return
+    const timer = setTimeout(() => navigate('/auth/login'), 1600)
+    return () => clearTimeout(timer)
+  }, [navigate, showSuccessModal])
 
   const validate = () => {
     const e = {}
@@ -27,7 +35,7 @@ function RegisterPage() {
     setLoading(true)
     try {
       await authApi.register({ name: form.name, email: form.email, password: form.password, phone: form.phone })
-      navigate('/auth/login')
+      setShowSuccessModal(true)
     } catch (err) {
       setErrors({ submit: err.response?.data?.error?.message || '회원가입에 실패했습니다.' })
     } finally {
@@ -42,6 +50,33 @@ function RegisterPage() {
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '40px 20px', background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)',
     }}>
+      {showSuccessModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--surface)', borderRadius: 20, padding: '36px 40px',
+              width: 360, boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
+            <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>
+              회원가입이 완료되었어요
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              {form.name || '사용자'}님, 가입을 축하합니다
+              <br />
+              로그인 페이지로 이동하고 있어요
+            </p>
+          </div>
+        </div>
+      )}
       <div style={{ width: '100%', maxWidth: 440 }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>

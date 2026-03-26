@@ -1,9 +1,9 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, useBlocker } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import * as interviewApi from '../api/interview'
 import Button from '../components/Button'
-import { getStats, saveStats, updateStreak, checkAndUnlock } from '../utils/achievements'
+import { checkAndUnlock, ensureAchievementStateLoaded } from '../utils/achievements'
 
 const INTERVIEW_TIPS = [
   '두괄식으로 답변하세요 — 결론부터 말하면 논리적인 인상을 남깁니다.',
@@ -146,6 +146,7 @@ function InterviewSessionPage() {
 
   useEffect(() => {
     if (!sessionId) { navigate('/interview/setup'); return }
+    ensureAchievementStateLoaded()
     loadNextQuestion()
   }, [])
 
@@ -163,30 +164,9 @@ function InterviewSessionPage() {
         setQuestionId(pending.id)
         setQuestionNum(pending.sequenceNumber || questions.indexOf(pending) + 1)
       } else {
-        // 모든 질문에 답변 완료
-        // Track interview achievement stats
-        const now = new Date()
-        const today = now.toISOString().slice(0, 10)
-        const dow = now.getDay()
-        const stats = getStats()
-        let updated = { ...stats }
-        updated.totalInterviews = (updated.totalInterviews || 0) + 1
-        updated.lastInterviewDate = today
-
-        // Weekend activity
-        if (dow === 0 || dow === 6) updated.weekendActivity = true
-
-        // Check if both interview and study done same day
-        if (updated.lastStudyDate === today) {
-          updated.didBothSameDay = true
-        }
-
-        updated = updateStreak(updated)
-        saveStats(updated)
-        checkAndUnlock(updated)
-
-        setDone(true)
         await interviewApi.endSession(sessionId)
+        await checkAndUnlock()
+        setDone(true)
       }
     } catch {
       setQuestion('자기소개 부탁드립니다.')

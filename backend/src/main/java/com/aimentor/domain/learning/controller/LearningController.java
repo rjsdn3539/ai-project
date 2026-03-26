@@ -1,6 +1,8 @@
 package com.aimentor.domain.learning.controller;
 
 import com.aimentor.common.api.ApiResponse;
+import com.aimentor.common.security.AuthenticatedUser;
+import com.aimentor.domain.learning.service.LearningDataService;
 import com.aimentor.external.ai.AiIntegrationProperties;
 import java.io.IOException;
 import java.net.URI;
@@ -14,6 +16,7 @@ import java.util.Map;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,10 +31,12 @@ public class LearningController {
 
     private final RestTemplate restTemplate;
     private final String aiBaseUrl;
+    private final LearningDataService learningDataService;
 
-    public LearningController(AiIntegrationProperties properties) {
+    public LearningController(AiIntegrationProperties properties, LearningDataService learningDataService) {
         this.restTemplate = new RestTemplate();
         this.aiBaseUrl = properties.baseUrl();
+        this.learningDataService = learningDataService;
     }
 
     @PostMapping(value = "/generate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -132,8 +137,14 @@ public class LearningController {
     }
 
     @GetMapping("/stats")
-    public ApiResponse<Map<String, Object>> stats() {
-        return ApiResponse.success(Map.of("totalAttempts", 0, "correctRate", 0.0));
+    public ApiResponse<Map<String, Object>> stats(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        var statsPayload = learningDataService.getStatsPayload(authenticatedUser.userId());
+        return ApiResponse.success(Map.of(
+                "totalAttempts", statsPayload.path("totalAttempts").asInt(0),
+                "correctRate", statsPayload.path("correctRate").asDouble(0.0)
+        ));
     }
 
     @PostMapping("/hint")

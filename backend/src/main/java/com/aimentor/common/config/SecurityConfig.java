@@ -45,7 +45,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/books/**").permitAll()
                         .requestMatchers("/api/v1/books/**").permitAll()
-                        .requestMatchers("/api/learning/**").permitAll()
+                        .requestMatchers(
+                                "/api/learning/generate",
+                                "/api/learning/generate/stream",
+                                "/api/learning/attempts",
+                                "/api/learning/placement/generate",
+                                "/api/learning/hint"
+                        ).permitAll()
+                        .requestMatchers("/api/learning/**").authenticated()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated());
 

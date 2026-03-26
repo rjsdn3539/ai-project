@@ -1,12 +1,9 @@
-﻿import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useBlocker } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import * as learningApi from '../api/learning'
 import Button from '../components/Button'
-import useAuthStore from '../store/authStore'
-import { getStats, saveStats, updateStreak, checkAndUnlock } from '../utils/achievements'
-
-const PROGRESS_KEY = (subject, difficulty) => `learningProgress_${subject}_${difficulty}`
+import { checkAndUnlock } from '../utils/achievements'
 
 const DIFFICULTY_LABEL = { EASY: '쉬움', MEDIUM: '보통', HARD: '어려움' }
 const DIFFICULTY_COLOR = { EASY: '#16a34a', MEDIUM: '#d97706', HARD: '#dc2626' }
@@ -143,13 +140,6 @@ function LearningLoadingScreen({ subject, difficulty }) {
       `}</style>
     </div>
   )
-}
-
-const getDailyKey = () => `learningDaily_${new Date().toISOString().slice(0, 10)}`
-const getDailyUsed = () => parseInt(localStorage.getItem(getDailyKey()) || '0', 10)
-const addDailyUsed = (count) => {
-  const key = getDailyKey()
-  localStorage.setItem(key, getDailyUsed() + count)
 }
 
 function ResultSummary({ problems, results, subject, onRetry }) {
@@ -289,14 +279,23 @@ function LearningSessionPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [finished])
 
-  const saveAndExit = () => {
+  const saveAndExit = async () => {
     const answeredCount = Object.keys(userAnswers).length
     if (problems.length > 0 && answeredCount < totalCount) {
-      localStorage.setItem(PROGRESS_KEY(state.subject, state.difficulty), JSON.stringify({
-        subject: state.subject, difficulty: state.difficulty, count: state.count,
-        problems, currentIdx, userAnswers, results,
-        savedAt: new Date().toISOString(),
-      }))
+      try {
+        await learningApi.saveLearningProgress({
+          subject: state.subject,
+          difficulty: state.difficulty,
+          count: state.count,
+          currentIdx,
+          problems,
+          userAnswers,
+          results,
+        })
+      } catch {
+        alert('진행 상황 저장에 실패했습니다.')
+        return
+      }
     }
     if (blocker.state === 'blocked') blocker.proceed()
     else navigate('/learning')
@@ -323,7 +322,6 @@ function LearningSessionPage() {
       setUserAnswers(sp.userAnswers || {})
       setResults(sp.results || {})
       setLoading(false)
-      localStorage.removeItem(PROGRESS_KEY(state.subject, state.difficulty))
       return
     }
 
@@ -436,14 +434,13 @@ function LearningSessionPage() {
     })
   }
 
-  const handleFinish = () => {
-    // 오답 저장
-    const saveKey = `wrongNotes_saved_${state?.subject}_${problems.length}_${Date.now()}`
+  const handleFinish = async () => {
+    if (submitting) return
+
     const wrongItems = problems
       .map((p, i) => ({ ...p, ...(results[i] || {}) }))
       .filter(x => !x.isCorrect)
       .map(item => ({
-        id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
         date: new Date().toISOString().slice(0, 10),
         subject: state?.subject || '',
         difficulty: state?.difficulty || '',
@@ -455,59 +452,24 @@ function LearningSessionPage() {
         aiFeedback: item.aiFeedback || '',
         explanation: item.explanation || '',
       }))
-    if (wrongItems.length > 0) {
-      const prev = JSON.parse(localStorage.getItem('wrongNotes') || '[]')
-      localStorage.setItem('wrongNotes', JSON.stringify([...prev, ...wrongItems]))
-    }
-    // 오늘 푼 문제 수 누적
     const answeredCountNow = Object.keys(results).length
-    addDailyUsed(answeredCountNow)
 
-    // ── Achievement tracking ───────────────────────────────────────────
-    const now = new Date()
-    const today = now.toISOString().slice(0, 10)
-    const hour = now.getHours()
-    const allProblemsCorrect = Object.values(results).every((r) => r.isCorrect)
-    const subject = state?.subject || ''
-
-    const stats = getStats()
-    let updated = { ...stats }
-
-    // Increment study problem count
-    updated.totalStudyProblems = (updated.totalStudyProblems || 0) + answeredCountNow
-
-    // Perfect study session
-    if (allProblemsCorrect && answeredCountNow > 0) {
-      updated.hadPerfectStudy = true
+    setSubmitting(true)
+    try {
+      await learningApi.submitLearningSessionResult({
+        subject: state?.subject || '',
+        answeredCount: answeredCountNow,
+        correctCount: Object.values(results).filter((item) => item.isCorrect).length,
+        wrongNotes: wrongItems,
+      })
+      await learningApi.deleteLearningProgress(state.subject, state.difficulty)
+      await checkAndUnlock()
+      setFinished(true)
+    } catch {
+      alert('학습 결과 저장에 실패했습니다.')
+    } finally {
+      setSubmitting(false)
     }
-
-    // Time-based special achievements
-    if (hour < 6) updated.studiedEarlyMorning = true
-    if (hour >= 0 && hour < 4) updated.studiedLateNight = true
-    if (hour >= 6 && hour < 9) updated.morningStudy = true
-
-    // Weekend activity
-    const dow = now.getDay()
-    if (dow === 0 || dow === 6) updated.weekendActivity = true
-
-    // Track subjects studied
-    if (subject && !updated.subjectsStudied.includes(subject)) {
-      updated.subjectsStudied = [...(updated.subjectsStudied || []), subject]
-    }
-
-    // Last study date + same-day bonus
-    updated.lastStudyDate = today
-    if (updated.lastInterviewDate === today) {
-      updated.didBothSameDay = true
-    }
-
-    // Update streak
-    updated = updateStreak(updated)
-    saveStats(updated)
-    checkAndUnlock(updated)
-    // ──────────────────────────────────────────────────────────────────
-
-    setFinished(true)
   }
 
   if (loading) {

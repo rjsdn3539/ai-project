@@ -3,13 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import useCartStore from '../store/cartStore'
 import { requestPayment, PAYMENT_METHODS } from '../utils/payment'
-import { upgradeSubscription } from '../api/subscription'
+import { getMySubscription, upgradeSubscription } from '../api/subscription'
 import { createOrder } from '../api/order'
 
 function PaymentPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user, updateSubscriptionTier } = useAuthStore()
   const { clearCart } = useCartStore()
 
   const state = location.state || {}
@@ -131,9 +131,24 @@ function PaymentPage() {
         } catch (err) {
           console.error('[createOrder] 구독 주문 생성 실패:', err?.response?.data || err)
         }
+        let upgraded = false
         try {
           await upgradeSubscription(state.planTier, billing)
+          upgraded = true
         } catch {}
+        try {
+          const { data } = await getMySubscription()
+          const nextTier = data?.data?.tier
+          if (nextTier) {
+            updateSubscriptionTier(nextTier)
+          } else if (upgraded) {
+            updateSubscriptionTier(state.planTier)
+          }
+        } catch {
+          if (upgraded) {
+            updateSubscriptionTier(state.planTier)
+          }
+        }
       }
       setResultId(result.paymentId)
       setDone(true)

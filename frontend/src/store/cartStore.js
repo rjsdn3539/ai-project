@@ -1,14 +1,21 @@
 import { create } from 'zustand'
+import {
+  AUTH_CHANGED_EVENT,
+  AUTH_CLEARED_EVENT,
+  readScopedJson,
+  writeScopedJson,
+} from '../utils/userScopedStorage'
 
 // localStorage helpers
 const CART_KEY = 'cart_items'
+let authListenersRegistered = false
 
 const loadCart = () => {
-  try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]') } catch { return [] }
+  return readScopedJson(CART_KEY, [])
 }
 
 const saveCart = (items) => {
-  localStorage.setItem(CART_KEY, JSON.stringify(items))
+  writeScopedJson(CART_KEY, items)
 }
 
 const useCartStore = create((set, get) => ({
@@ -54,5 +61,12 @@ const useCartStore = create((set, get) => ({
     set({ items: loadCart() })
   },
 }))
+
+if (!authListenersRegistered) {
+  const syncCart = () => useCartStore.setState({ items: loadCart() })
+  window.addEventListener(AUTH_CHANGED_EVENT, syncCart)
+  window.addEventListener(AUTH_CLEARED_EVENT, syncCart)
+  authListenersRegistered = true
+}
 
 export default useCartStore

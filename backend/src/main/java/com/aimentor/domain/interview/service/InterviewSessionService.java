@@ -17,6 +17,7 @@ import com.aimentor.domain.interview.repository.InterviewAnswerRepository;
 import com.aimentor.domain.interview.repository.InterviewFeedbackRepository;
 import com.aimentor.domain.interview.repository.InterviewQuestionRepository;
 import com.aimentor.domain.interview.repository.InterviewSessionRepository;
+import com.aimentor.domain.learning.service.LearningDataService;
 import com.aimentor.domain.profile.entity.CoverLetter;
 import com.aimentor.domain.profile.entity.JobPosting;
 import com.aimentor.domain.profile.entity.Resume;
@@ -63,6 +64,7 @@ public class InterviewSessionService {
     private final JobPostingRepository jobPostingRepository;
     private final AiIntegrationService aiIntegrationService;
     private final SubscriptionService subscriptionService;
+    private final LearningDataService learningDataService;
 
     public InterviewSessionService(
             InterviewSessionRepository interviewSessionRepository,
@@ -74,7 +76,8 @@ public class InterviewSessionService {
             CoverLetterRepository coverLetterRepository,
             JobPostingRepository jobPostingRepository,
             AiIntegrationService aiIntegrationService,
-            SubscriptionService subscriptionService
+            SubscriptionService subscriptionService,
+            LearningDataService learningDataService
     ) {
         this.interviewSessionRepository = interviewSessionRepository;
         this.interviewQuestionRepository = interviewQuestionRepository;
@@ -86,6 +89,7 @@ public class InterviewSessionService {
         this.jobPostingRepository = jobPostingRepository;
         this.aiIntegrationService = aiIntegrationService;
         this.subscriptionService = subscriptionService;
+        this.learningDataService = learningDataService;
     }
 
     @Transactional
@@ -201,6 +205,7 @@ public class InterviewSessionService {
 
         refreshSessionFeedback(interviewSession);
         interviewSession.end();
+        learningDataService.recordInterviewCompletion(userId, interviewSession.getEndedAt());
         return toSessionResponse(interviewSession);
     }
 
