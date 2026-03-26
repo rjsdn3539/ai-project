@@ -4,7 +4,8 @@ import useAuthStore from '../store/authStore'
 import * as interviewApi from '../api/interview'
 import * as userApi from '../api/user'
 import * as bookApi from '../api/book'
-import { getStats, ACHIEVEMENTS, TIER_COLORS } from '../utils/achievements'
+import { getStats, ACHIEVEMENTS, TIER_COLORS, ensureAchievementStateLoaded } from '../utils/achievements'
+import { readScopedString, writeScopedString } from '../utils/userScopedStorage'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -81,11 +82,17 @@ function StreakWidget() {
   const [stats, setStats] = useState(() => getStats())
 
   useEffect(() => {
-    const onFocus = () => setStats(getStats())
+    const onFocus = async () => {
+      await ensureAchievementStateLoaded(true)
+      setStats(getStats())
+    }
+    const onUnlocked = () => setStats(getStats())
+    onFocus()
     window.addEventListener('focus', onFocus)
-    window.addEventListener('achievement-unlocked', () => setStats(getStats()))
+    window.addEventListener('achievement-unlocked', onUnlocked)
     return () => {
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('achievement-unlocked', onUnlocked)
     }
   }, [])
 
@@ -249,12 +256,17 @@ function AchievementsWidget() {
   const [stats, setStats] = useState(() => getStats())
 
   useEffect(() => {
-    const refresh = () => setStats(getStats())
+    const refresh = async () => {
+      await ensureAchievementStateLoaded(true)
+      setStats(getStats())
+    }
+    const onUnlocked = () => setStats(getStats())
+    refresh()
     window.addEventListener('focus', refresh)
-    window.addEventListener('achievement-unlocked', refresh)
+    window.addEventListener('achievement-unlocked', onUnlocked)
     return () => {
       window.removeEventListener('focus', refresh)
-      window.removeEventListener('achievement-unlocked', refresh)
+      window.removeEventListener('achievement-unlocked', onUnlocked)
     }
   }, [])
 
@@ -379,9 +391,9 @@ function AchievementsWidget() {
 
 // ── D-Day 위젯 ───────────────────────────────────────────────────────────────
 function DDayWidget() {
-  const [targetDate, setTargetDate] = useState(() => localStorage.getItem('ddayTarget') || '')
-  const [label, setLabel]           = useState(() => localStorage.getItem('ddayLabel') || '목표 면접')
-  const [editing, setEditing]       = useState(!localStorage.getItem('ddayTarget'))
+  const [targetDate, setTargetDate] = useState(() => readScopedString('ddayTarget'))
+  const [label, setLabel]           = useState(() => readScopedString('ddayLabel', '목표 면접'))
+  const [editing, setEditing]       = useState(!readScopedString('ddayTarget'))
   const [focused, setFocused]       = useState(null)
 
   const daysLeft = targetDate
@@ -390,8 +402,8 @@ function DDayWidget() {
 
   const save = () => {
     if (!targetDate) return
-    localStorage.setItem('ddayTarget', targetDate)
-    localStorage.setItem('ddayLabel', label)
+    writeScopedString('ddayTarget', targetDate)
+    writeScopedString('ddayLabel', label)
     setEditing(false)
   }
 
@@ -444,9 +456,9 @@ function DDayWidget() {
 
 // ── 메모 위젯 ────────────────────────────────────────────────────────────────
 function MemoWidget() {
-  const [memo, setMemo]       = useState(() => localStorage.getItem('homeMemo') || '')
+  const [memo, setMemo]       = useState(() => readScopedString('homeMemo'))
   const [focused, setFocused] = useState(false)
-  useEffect(() => { localStorage.setItem('homeMemo', memo) }, [memo])
+  useEffect(() => { writeScopedString('homeMemo', memo) }, [memo])
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '22px 24px', border: '1.5px solid var(--border-light)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>

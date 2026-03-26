@@ -1,16 +1,14 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import * as interviewApi from '../api/interview'
 import Button from '../components/Button'
 import useAuthStore from '../store/authStore'
 import {
-  getStats,
-  saveStats,
   checkAndUnlock,
   addBookmark,
   removeBookmark,
   isBookmarked,
-  getBookmarks,
+  ensureAchievementStateLoaded,
 } from '../utils/achievements'
 
 function ScoreRing({ label, score, size = 80 }) {
@@ -71,8 +69,11 @@ function InterviewResultPage() {
   const canSeeModelAnswer = tier === 'PREMIUM'
 
   useEffect(() => {
-    interviewApi.getFeedback(id)
-      .then(({ data }) => {
+    Promise.all([
+      interviewApi.getFeedback(id),
+      ensureAchievementStateLoaded(true),
+    ])
+      .then(([{ data }]) => {
         const d = data.data
         setReport(d)
         const fb = d.feedback
@@ -87,19 +88,7 @@ function InterviewResultPage() {
           setBookmarked(bm)
         }
 
-        // Track best score achievement
-        if (fb?.overallScore != null) {
-          const stats = getStats()
-          if (fb.overallScore > (stats.bestScore || 0)) {
-            const updated = {
-              ...stats,
-              bestScore: fb.overallScore,
-              scoreImprovement: (stats.scoreImprovement || 0) + 1,
-            }
-            saveStats(updated)
-            checkAndUnlock(updated)
-          }
-        }
+
       })
       .catch(() => setFeedback({
         logicScore: 75, relevanceScore: 82, specificityScore: 68, overallScore: 75,
@@ -110,14 +99,14 @@ function InterviewResultPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  const handleBookmarkToggle = (q) => {
+  const handleBookmarkToggle = async (q) => {
     const qId = String(q.id || q.sequenceNumber)
     const currently = bookmarked[qId]
     if (currently) {
-      removeBookmark(qId)
+      await removeBookmark(qId)
       setBookmarked((prev) => ({ ...prev, [qId]: false }))
     } else {
-      addBookmark({
+      await addBookmark({
         id: qId,
         questionText: q.questionText,
         answerText: q.answer?.answerText || '',
@@ -125,13 +114,9 @@ function InterviewResultPage() {
         date: new Date().toISOString(),
       })
       setBookmarked((prev) => ({ ...prev, [qId]: true }))
-      // Check bookmark achievements
-      const stats = getStats()
-      const currentBookmarks = getBookmarks()
-      const updatedStats = { ...stats, totalBookmarks: currentBookmarks.length }
-      saveStats(updatedStats)
-      checkAndUnlock(updatedStats)
     }
+
+    await checkAndUnlock()
   }
 
   if (loading) {

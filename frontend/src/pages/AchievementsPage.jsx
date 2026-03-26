@@ -4,9 +4,9 @@ import {
   ACHIEVEMENTS,
   TIER_COLORS,
   getStats,
-  saveStats,
   getBookmarks,
   removeBookmark,
+  ensureAchievementStateLoaded,
 } from '../utils/achievements'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -194,10 +194,12 @@ function AchievementsPage() {
 
   // Reload on focus (in case stats updated from another page)
   useEffect(() => {
-    const onFocus = () => {
+    const onFocus = async () => {
+      await ensureAchievementStateLoaded(true)
       setStats(getStats())
       setBookmarks(getBookmarks())
     }
+    onFocus()
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [])
@@ -219,14 +221,10 @@ function AchievementsPage() {
     ? ACHIEVEMENTS
     : ACHIEVEMENTS.filter((a) => a.category === activeTab)
 
-  const handleRemoveBookmark = (id) => {
-    removeBookmark(id)
-    const newBookmarks = getBookmarks()
-    setBookmarks(newBookmarks)
-    // Update totalBookmarks in stats
-    const s = getStats()
-    s.totalBookmarks = newBookmarks.length
-    saveStats(s)
+  const handleRemoveBookmark = async (id) => {
+    await removeBookmark(id)
+    await ensureAchievementStateLoaded(true)
+    setBookmarks(getBookmarks())
     setStats(getStats())
   }
 

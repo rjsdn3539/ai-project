@@ -44,6 +44,9 @@ integration:
     api-key: ${SPEECH_API_KEY:}
     base-url: ${SPEECH_BASE_URL:}
     voice: ${SPEECH_VOICE:}
+  juso:
+    base-url: ${JUSO_BASE_URL:https://business.juso.go.kr/addrlink/addrLinkApi.do}
+    api-key: ${JUSO_API_KEY:}
 
 aladin:
   base-url: http://www.aladin.co.kr/ttb/api

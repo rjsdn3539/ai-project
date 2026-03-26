@@ -116,11 +116,22 @@ class InterviewSessionControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.data.feedback.overallScore").isNumber());
 
+        mockMvc.perform(get("/api/learning/achievement-state")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stats.totalInterviews").value(1))
+                .andExpect(jsonPath("$.data.stats.lastInterviewDate").isNotEmpty())
+                .andExpect(jsonPath("$.data.stats.unlockedAt.first_interview").isNotEmpty());
+
         mockMvc.perform(get("/api/v1/interviews/sessions/{sessionId}/report", sessionId)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.sessionId").value(sessionId))
-                .andExpect(jsonPath("$.data.feedback.summary").isNotEmpty());
+                .andExpect(jsonPath("$.data.feedback.summary").isNotEmpty())
+                .andExpect(jsonPath("$.data.feedback.overallScore").isNumber())
+                .andExpect(jsonPath("$.data.feedback.logicScore").isNumber())
+                .andExpect(jsonPath("$.data.feedback.relevanceScore").isNumber())
+                .andExpect(jsonPath("$.data.feedback.specificityScore").isNumber());
     }
 
     private String signupAndGetAccessToken(String email) throws Exception {

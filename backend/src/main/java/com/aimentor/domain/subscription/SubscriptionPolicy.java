@@ -37,9 +37,9 @@ public class SubscriptionPolicy {
         };
     }
 
-    // 피드백 점수 공개 여부 (FREE는 요약만)
+    // 피드백 점수 공개 여부
     public static boolean isFeedbackScoreVisible(SubscriptionTier tier) {
-        return tier != SubscriptionTier.FREE;
+        return true;
     }
 
     // 도서 할인율 (%) - PRO: 5%, PREMIUM: 10%

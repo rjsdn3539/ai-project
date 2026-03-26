@@ -33,6 +33,7 @@ const S = {
     color: 'var(--text-muted)', background: 'var(--bg)', borderBottom: '1px solid var(--border)',
   },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--border-light)', color: 'var(--text-secondary)' },
+  actionRow: { display: 'flex', gap: 6, alignItems: 'center', minHeight: 32, flexWrap: 'wrap' },
 }
 
 function Badge({ label, type }) {
@@ -358,13 +359,15 @@ function UsersTab() {
                 <Badge label={u.subscriptionTier || 'FREE'} type={u.subscriptionTier} />
               </td>
               <td style={S.td}>{u.createdAt?.slice(0, 10)}</td>
-              <td style={{ ...S.td, display: 'flex', gap: 6 }}>
-                <button style={S.btn(u.role === 'ADMIN' ? 'var(--text-secondary)' : 'var(--primary)')}
-                  onClick={() => handleRoleToggle(u)}>
-                  {u.role === 'ADMIN' ? 'USER로 변경' : 'ADMIN 지정'}
-                </button>
-                <button style={S.btn('var(--primary)')} onClick={() => setSubModal(u)}>구독변경</button>
-                <button style={S.btn('#ef4444')} onClick={() => setConfirm(u.id)}>삭제</button>
+              <td style={S.td}>
+                <div style={S.actionRow}>
+                  <button style={S.btn(u.role === 'ADMIN' ? 'var(--text-secondary)' : 'var(--primary)')}
+                    onClick={() => handleRoleToggle(u)}>
+                    {u.role === 'ADMIN' ? 'USER로 변경' : 'ADMIN 지정'}
+                  </button>
+                  <button style={S.btn('var(--primary)')} onClick={() => setSubModal(u)}>구독변경</button>
+                  <button style={S.btn('#ef4444')} onClick={() => setConfirm(u.id)}>삭제</button>
+                </div>
               </td>
             </tr>
           ))}
@@ -649,9 +652,11 @@ function BooksTab() {
                   {b.stock === 0 ? '품절' : b.stock}
                 </span>
               </td>
-              <td style={{ ...S.td, display: 'flex', gap: 6 }}>
-                <button style={S.btn('var(--warning)')} onClick={() => setModal(b)}>수정</button>
-                <button style={S.btn('#ef4444')} onClick={() => setConfirm(b.id)}>삭제</button>
+              <td style={S.td}>
+                <div style={S.actionRow}>
+                  <button style={S.btn('var(--warning)')} onClick={() => setModal(b)}>수정</button>
+                  <button style={S.btn('#ef4444')} onClick={() => setConfirm(b.id)}>삭제</button>
+                </div>
               </td>
             </tr>
           ))}
@@ -759,15 +764,17 @@ function PaymentsTab() {
                 )}
               </td>
               <td style={S.td}>{o.createdAt?.slice(0, 10)}</td>
-              <td style={{ ...S.td, display: 'flex', gap: 6 }}>
-                {editingId === o.id ? (
-                  <>
-                    <button style={S.btn('var(--success)')} onClick={() => handleSaveStatus(o.id)}>저장</button>
-                    <button style={S.btn('var(--text-secondary)')} onClick={() => setEditingId(null)}>취소</button>
-                  </>
-                ) : (
-                  <button style={S.btn('var(--warning)')} onClick={() => { setEditingId(o.id); setNewStatus(o.paymentStatus) }}>변경</button>
-                )}
+              <td style={S.td}>
+                <div style={S.actionRow}>
+                  {editingId === o.id ? (
+                    <>
+                      <button style={S.btn('var(--success)')} onClick={() => handleSaveStatus(o.id)}>저장</button>
+                      <button style={S.btn('var(--text-secondary)')} onClick={() => setEditingId(null)}>취소</button>
+                    </>
+                  ) : (
+                    <button style={S.btn('var(--warning)')} onClick={() => { setEditingId(o.id); setNewStatus(o.paymentStatus) }}>변경</button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

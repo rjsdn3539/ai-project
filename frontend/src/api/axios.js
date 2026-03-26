@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { dispatchAuthCleared } from '../utils/userScopedStorage'
 
 const api = axios.create({
   baseURL: 'http://localhost:8080',
@@ -20,7 +21,7 @@ const clearAuth = () => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
-  window.dispatchEvent(new CustomEvent('auth:cleared'))
+  dispatchAuthCleared()
   const publicPaths = ['/home', '/auth/login', '/auth/register', '/books', '/subscription', '/faq']
   const isPublic = publicPaths.some(p => window.location.pathname.startsWith(p))
   if (!isPublic) {

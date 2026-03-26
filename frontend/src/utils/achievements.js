@@ -1,5 +1,16 @@
 // ── Achievement Definitions ──────────────────────────────────────────────────
 
+import {
+  getCurrentUserId,
+  readScopedJson,
+  writeScopedJson,
+} from './userScopedStorage'
+import {
+  addInterviewBookmark,
+  deleteInterviewBookmark,
+  getAchievementState,
+} from '../api/learning'
+
 export const ACHIEVEMENTS = [
   // ── INTERVIEW ──────────────────────────────────────────────────────────────
   {
@@ -424,129 +435,148 @@ const DEFAULT_STATS = {
 }
 
 const STATS_KEY = 'achievementStats'
+const BOOKMARKS_KEY = 'interviewBookmarks'
+let loadedUserId = null
+let serverLoadedUserId = null
+let statsCache = { ...DEFAULT_STATS }
+let bookmarksCache = []
+let loadPromise = null
 
-// ── Stats Helpers ─────────────────────────────────────────────────────────────
-export function getStats() {
-  try {
-    const raw = localStorage.getItem(STATS_KEY)
-    if (!raw) return { ...DEFAULT_STATS }
-    const parsed = JSON.parse(raw)
-    return { ...DEFAULT_STATS, ...parsed }
-  } catch {
-    return { ...DEFAULT_STATS }
-  }
+function syncCachesFromStorage() {
+  const currentUserId = getCurrentUserId() || null
+  if (loadedUserId === currentUserId) return
+
+  loadedUserId = currentUserId
+  serverLoadedUserId = null
+  loadPromise = null
+  statsCache = { ...DEFAULT_STATS, ...readScopedJson(STATS_KEY, {}) }
+  bookmarksCache = readScopedJson(BOOKMARKS_KEY, [])
 }
 
-export function saveStats(stats) {
+function persistStatsCache() {
   try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats))
+    writeScopedJson(STATS_KEY, statsCache)
   } catch {
     // ignore storage errors
   }
 }
 
-// ── Streak Update ─────────────────────────────────────────────────────────────
-export function updateStreak(stats) {
-  const today = new Date().toISOString().slice(0, 10)
-  const last = stats.lastActivityDate
-
-  let currentStreak = stats.currentStreak || 0
-  let cameBack = stats.cameBack || false
-
-  if (!last) {
-    currentStreak = 1
-  } else if (last === today) {
-    // Already counted today
-  } else {
-    const lastDate = new Date(last)
-    const todayDate = new Date(today)
-    const diffDays = Math.round((todayDate - lastDate) / 86400000)
-
-    if (diffDays === 1) {
-      currentStreak = currentStreak + 1
-    } else {
-      if (diffDays >= 7) cameBack = true
-      currentStreak = 1
-    }
-  }
-
-  const longestStreak = Math.max(stats.longestStreak || 0, currentStreak)
-
-  return {
-    ...stats,
-    currentStreak,
-    longestStreak,
-    cameBack,
-    lastActivityDate: today,
+function persistBookmarksCache() {
+  try {
+    writeScopedJson(BOOKMARKS_KEY, bookmarksCache)
+  } catch {
+    // ignore storage errors
   }
 }
 
-// ── Check & Unlock ─────────────────────────────────────────────────────────────
-export function checkAndUnlock(stats) {
-  const newlyUnlocked = []
-  const now = new Date().toISOString()
-  const unlockedAt = { ...(stats.unlockedAt || {}) }
+function dispatchUnlockedAchievements(previousUnlockedAt = {}, nextUnlockedAt = {}) {
+  const newlyUnlocked = Object.entries(nextUnlockedAt)
+    .filter(([id, unlockedAt]) => unlockedAt && !previousUnlockedAt[id])
+    .map(([id, unlockedAt]) => {
+      const achievement = ACHIEVEMENTS.find((item) => item.id === id)
+      return achievement ? { ...achievement, unlockedAt } : null
+    })
+    .filter(Boolean)
 
-  for (const achievement of ACHIEVEMENTS) {
-    if (unlockedAt[achievement.id]) continue
-    try {
-      if (achievement.condition(stats)) {
-        unlockedAt[achievement.id] = now
-        newlyUnlocked.push({ ...achievement, unlockedAt: now })
-      }
-    } catch {
-      // ignore condition errors
-    }
-  }
-
-  if (newlyUnlocked.length > 0) {
-    const updatedStats = { ...stats, unlockedAt }
-    saveStats(updatedStats)
-
-    for (const achievement of newlyUnlocked) {
-      window.dispatchEvent(
-        new CustomEvent('achievement-unlocked', { detail: achievement })
-      )
-    }
+  for (const achievement of newlyUnlocked) {
+    window.dispatchEvent(
+      new CustomEvent('achievement-unlocked', { detail: achievement })
+    )
   }
 
   return newlyUnlocked
 }
 
-// ── Bookmark Helpers ──────────────────────────────────────────────────────────
-const BOOKMARKS_KEY = 'interviewBookmarks'
+export async function ensureAchievementStateLoaded(force = false) {
+  syncCachesFromStorage()
 
-export function getBookmarks() {
-  try {
-    const raw = localStorage.getItem(BOOKMARKS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
+  const currentUserId = getCurrentUserId()
+  if (!currentUserId) {
+    return { stats: getStats(), bookmarks: getBookmarks() }
   }
+
+  if (!force && serverLoadedUserId === currentUserId) {
+    return { stats: getStats(), bookmarks: getBookmarks() }
+  }
+
+  if (!force && loadPromise) {
+    return loadPromise
+  }
+
+  loadPromise = getAchievementState()
+    .then(({ data }) => {
+      const payload = data?.data || {}
+      statsCache = { ...DEFAULT_STATS, ...(payload.stats || {}) }
+      bookmarksCache = Array.isArray(payload.bookmarks) ? payload.bookmarks : []
+      serverLoadedUserId = currentUserId
+      persistStatsCache()
+      persistBookmarksCache()
+      return { stats: statsCache, bookmarks: bookmarksCache }
+    })
+    .catch(() => ({ stats: getStats(), bookmarks: getBookmarks() }))
+    .finally(() => {
+      loadPromise = null
+    })
+
+  return loadPromise
 }
 
-export function addBookmark({ id, questionText, answerText, sessionId, date }) {
+// ── Stats Helpers ─────────────────────────────────────────────────────────────
+export function getStats() {
+  syncCachesFromStorage()
+  return { ...DEFAULT_STATS, ...statsCache }
+}
+
+// ── Check & Unlock ─────────────────────────────────────────────────────────────
+export async function checkAndUnlock() {
+  syncCachesFromStorage()
+  const previousUnlockedAt = { ...(statsCache.unlockedAt || {}) }
+  const { stats } = await ensureAchievementStateLoaded(true)
+  return dispatchUnlockedAchievements(previousUnlockedAt, stats.unlockedAt || {})
+}
+
+// ── Bookmark Helpers ──────────────────────────────────────────────────────────
+export function getBookmarks() {
+  syncCachesFromStorage()
+  return [...bookmarksCache]
+}
+
+export async function addBookmark({ id, questionText, answerText, sessionId, date }) {
+  syncCachesFromStorage()
   const bookmarks = getBookmarks()
   if (bookmarks.find((b) => b.id === id)) return bookmarks
 
   const newBookmark = { id, questionText, answerText, sessionId, date }
-  const updated = [newBookmark, ...bookmarks]
-  try {
-    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(updated))
-  } catch {
-    // ignore
+  bookmarksCache = [newBookmark, ...bookmarks]
+  persistBookmarksCache()
+
+  if (getCurrentUserId()) {
+    try {
+      await addInterviewBookmark(newBookmark)
+      await ensureAchievementStateLoaded(true)
+    } catch {
+      // keep local cache as fallback
+    }
   }
-  return updated
+
+  return getBookmarks()
 }
 
-export function removeBookmark(id) {
-  const bookmarks = getBookmarks().filter((b) => b.id !== id)
-  try {
-    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
-  } catch {
-    // ignore
+export async function removeBookmark(id) {
+  syncCachesFromStorage()
+  bookmarksCache = getBookmarks().filter((b) => b.id !== id)
+  persistBookmarksCache()
+
+  if (getCurrentUserId()) {
+    try {
+      await deleteInterviewBookmark(id)
+      await ensureAchievementStateLoaded(true)
+    } catch {
+      // keep local cache as fallback
+    }
   }
-  return bookmarks
+
+  return getBookmarks()
 }
 
 export function isBookmarked(id) {

@@ -4,11 +4,6 @@ import * as bookApi from '../api/book'
 const STATUS_LABEL = { PENDING: '결제완료', PAID: '결제완료', SHIPPED: '배송중', DELIVERED: '배송완료', CANCELLED: '취소' }
 const STATUS_COLOR = { PENDING: 'var(--warning)', PAID: 'var(--success)', SHIPPED: '#4f46e5', DELIVERED: 'var(--text-secondary)', CANCELLED: '#ef4444' }
 
-const MOCK_ORDERS = [
-  { id: 1, orderedAt: '2026-03-10', status: 'SHIPPED', totalPrice: 60000, address: '서울시 강남구', items: [{ bookTitle: '클린 코드', quantity: 1, price: 32000 }, { bookTitle: '개발자 면접 교과서', quantity: 1, price: 28000 }] },
-  { id: 2, orderedAt: '2026-03-15', status: 'PAID', totalPrice: 38000, address: '서울시 마포구', items: [{ bookTitle: 'Spring Boot 실전', quantity: 1, price: 38000 }] },
-]
-
 function OrderPage() {
   const [orders, setOrders] = useState([])
   const [expanded, setExpanded] = useState(null)
@@ -17,7 +12,7 @@ function OrderPage() {
   useEffect(() => {
     bookApi.getOrders()
       .then(({ data }) => setOrders(data.data || []))
-      .catch(() => setOrders(MOCK_ORDERS))
+      .catch(() => setOrders([]))
       .finally(() => setLoading(false))
   }, [])
 

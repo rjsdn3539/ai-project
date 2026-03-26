@@ -2,12 +2,13 @@
 import * as profileApi from '../api/profile'
 import * as authApi from '../api/auth'
 import useAuthStore from '../store/authStore'
+import { readScopedJson, writeScopedJson } from '../utils/userScopedStorage'
 
 const PRIMARY = 'var(--primary)'
 const BORDER = 'var(--border)'
 
-const lsGet = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] } }
-const lsSet = (key, val) => localStorage.setItem(key, JSON.stringify(val))
+const lsGet = (key) => readScopedJson(key, [])
+const lsSet = (key, val) => writeScopedJson(key, val)
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2)
 
 const TABS = [

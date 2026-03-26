@@ -3,34 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Tooltip, ResponsiveContainer, Area, AreaChart, XAxis, YAxis, ReferenceLine } from 'recharts'
 import useAuthStore from '../store/authStore'
 import * as interviewApi from '../api/interview'
+import * as learningApi from '../api/learning'
 import * as subscriptionApi from '../api/subscription'
-
-const MOCK_SESSIONS = [
-  { id: 1, title: '카카오', positionTitle: '백엔드', feedback: { overallScore: 65 }, endedAt: '2026-03-10' },
-  { id: 2, title: '네이버', positionTitle: '프론트엔드', feedback: { overallScore: 72 }, endedAt: '2026-03-13' },
-  { id: 3, title: '라인', positionTitle: '풀스택', feedback: { overallScore: 80 }, endedAt: '2026-03-16' },
-]
-const MOCK_CHART = [
-  { date: '3/10', score: 65 }, { date: '3/13', score: 72 }, { date: '3/16', score: 80 },
-]
-
-// Mock AI coaching — in production this would come from the last session's feedback
-const MOCK_COACHING = [
-  {
-    type: 'weak',
-    icon: '💬',
-    title: '답변이 추상적이에요',
-    desc: '"노력했습니다" 같은 표현보다 구체적인 수치와 결과를 넣어보세요.',
-    tip: 'STAR 기법: 상황 → 과제 → 행동 → 결과 순으로 구성하세요',
-  },
-  {
-    type: 'weak',
-    icon: '📌',
-    title: '사례가 부족해요',
-    desc: '직무 관련 경험을 구체적으로 2~3개 준비해두면 설득력이 높아집니다.',
-    tip: '경험 키워드: 협업 / 문제해결 / 성과 / 리더십',
-  },
-]
 
 const GOAL_SCORE = 85
 const TIER_COLOR = { FREE: '#b3a99e', STANDARD: '#7c6af0', PRO: '#9b5de5', PREMIUM: 'var(--warning)' }
@@ -42,6 +16,40 @@ function getPercentile(score) {
   if (score >= 70) return 35
   if (score >= 60) return 52
   return 70
+}
+
+function compactText(value = '') {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function summarizeText(value = '', maxLength = 72) {
+  const normalized = compactText(value)
+  if (!normalized) return ''
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength).trim()}...` : normalized
+}
+
+function buildCoachingItems(feedback) {
+  const items = []
+
+  if (feedback?.weakPoints) {
+    items.push({
+      icon: '⚠️',
+      title: '부족한 부분',
+      desc: compactText(feedback.weakPoints),
+      tip: summarizeText(feedback.summary || '답변의 핵심 메시지를 먼저 또렷하게 전달해보세요.'),
+    })
+  }
+
+  if (feedback?.improvements) {
+    items.push({
+      icon: '💡',
+      title: '개선 방향',
+      desc: compactText(feedback.improvements),
+      tip: summarizeText(feedback.recommendedAnswer || '다음 면접에서 바로 쓸 답변 구조를 미리 정리해두세요.'),
+    })
+  }
+
+  return items
 }
 
 // ── Custom dot: last point is larger & glowing
@@ -71,40 +79,62 @@ const CustomTooltip = ({ active, payload, label }) => {
 function DashboardPage() {
   const { user } = useAuthStore()
   const [sessions, setSessions]     = useState([])
-  const [chartData, setChartData]   = useState(MOCK_CHART)
+  const [chartData, setChartData]   = useState([])
+  const [summary, setSummary]       = useState(null)
   const [subStatus, setSubStatus]   = useState(null)
+  const [coachingSession, setCoachingSession] = useState(null)
   const [hoveredRow, setHoveredRow] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     subscriptionApi.getMySubscription().then(({ data }) => setSubStatus(data.data)).catch(() => {})
+    learningApi.getLearningDashboardSummary().then(({ data }) => setSummary(data.data || null)).catch(() => setSummary(null))
     interviewApi.getSessions()
       .then(({ data }) => {
         const list = data.data || []
         setSessions(list.slice(0, 5))
+        setCoachingSession(
+          list.find((session) =>
+            session.status === 'COMPLETED' && (
+              session.feedback?.weakPoints ||
+              session.feedback?.improvements ||
+              session.feedback?.summary
+            )
+          ) || null
+        )
         const scored = list.filter(s => s.feedback?.overallScore != null)
         if (scored.length > 0) {
           const chartList = [...scored].reverse()
           setChartData(chartList.map((s) => ({ date: s.endedAt?.slice(5, 10), score: s.feedback.overallScore })))
+        } else {
+          setChartData([])
         }
       })
-      .catch(() => setSessions(MOCK_SESSIONS))
+      .catch(() => {
+        setSessions([])
+        setChartData([])
+        setCoachingSession(null)
+      })
   }, [])
 
   const tier        = subStatus?.tier || user?.subscriptionTier || 'FREE'
   const scored      = sessions.filter(s => s.feedback?.overallScore != null)
-  const avgScore    = scored.length > 0 ? Math.round(scored.reduce((sum, x) => sum + x.feedback.overallScore, 0) / scored.length) : null
-  const latestScore = scored.length > 0 ? scored[0].feedback.overallScore : null
-  const prevScore   = scored.length > 1 ? scored[1].feedback.overallScore : null
-  const scoreTrend  = latestScore != null && prevScore != null ? latestScore - prevScore : null
+  const avgScore    = summary?.averageInterviewScore ?? (scored.length > 0 ? Math.round(scored.reduce((sum, x) => sum + x.feedback.overallScore, 0) / scored.length) : null)
+  const latestScore = summary?.latestInterviewScore ?? (scored.length > 0 ? scored[0].feedback.overallScore : null)
+  const prevScore   = summary?.previousInterviewScore ?? (scored.length > 1 ? scored[1].feedback.overallScore : null)
+  const scoreTrend  = summary?.scoreTrend ?? (latestScore != null && prevScore != null ? latestScore - prevScore : null)
   const percentile  = getPercentile(avgScore)
+  const learningCorrectRate = summary?.correctRate ?? null
+  const totalStudyProblems = summary?.totalStudyProblems ?? 0
+  const totalInterviews = summary?.totalInterviews ?? sessions.length
   const toGoal      = avgScore != null ? GOAL_SCORE - avgScore : null
   const goalPct     = avgScore != null ? Math.min(100, Math.round((avgScore / GOAL_SCORE) * 100)) : 0
+  const coachingItems = buildCoachingItems(coachingSession?.feedback)
 
   return (
     <div style={{ width: '100%' }}>
 
-      {/* ══ A. 인사 헤더 ══ */}
+      {/* A. 인사 헤더 */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>
           내 통계
@@ -118,7 +148,7 @@ function DashboardPage() {
             {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
           </p>
           <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
-            안녕하세요, {user?.name || '사용자'}님 👋
+            안녕하세요, {user?.name || '사용자'}님
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -134,6 +164,18 @@ function DashboardPage() {
               <span style={{ color: 'var(--accent)', fontWeight: 700 }}>상위 {percentile}%</span>
             </div>
           )}
+          {learningCorrectRate != null && (
+            <div style={{
+              background: 'var(--surface)', border: '1.5px solid var(--border)',
+              borderRadius: 99, padding: '6px 14px',
+              display: 'flex', alignItems: 'center', gap: 7,
+              boxShadow: 'var(--shadow-sm)', fontSize: 13,
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: learningCorrectRate >= 70 ? 'var(--success)' : 'var(--warning)', flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, color: 'var(--text)' }}>학습 {learningCorrectRate}%</span>
+              <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{totalStudyProblems}문제</span>
+            </div>
+          )}
           <div
             onClick={() => navigate('/subscription')}
             style={{
@@ -145,13 +187,13 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ B. 핵심 지표 요약 카드 4개 ══ */}
+      {/* B. 핵심 지표 요약 카드 4개 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
         {[
           {
             icon: '📊',
             label: '평균 점수',
-            value: avgScore != null ? `${avgScore}점` : '—',
+            value: avgScore != null ? `${avgScore}점` : '?',
             sub: avgScore != null ? (avgScore >= 80 ? '우수한 수준이에요' : avgScore >= 60 ? '평균 수준이에요' : '개선이 필요해요') : '면접을 시작해보세요',
             color: avgScore != null ? (avgScore >= 80 ? 'var(--success)' : avgScore >= 60 ? 'var(--warning)' : '#e05252') : 'var(--text-muted)',
             bg: avgScore != null ? (avgScore >= 80 ? 'var(--bg-success)' : avgScore >= 60 ? 'var(--bg-warning)' : 'var(--bg-error)') : 'var(--bg)',
@@ -160,8 +202,8 @@ function DashboardPage() {
           {
             icon: '🎯',
             label: '총 면접 횟수',
-            value: `${sessions.length}회`,
-            sub: sessions.length === 0 ? '첫 면접을 시작해보세요' : `최근 ${sessions.length}개 기록 분석 중`,
+            value: `${totalInterviews}회`,
+            sub: totalInterviews === 0 ? '첫 면접을 시작해보세요' : `최근 ${sessions.length}개 기록 분석 중`,
             color: 'var(--primary)',
             bg: 'var(--primary-light)',
             border: 'var(--primary-border)',
@@ -169,8 +211,8 @@ function DashboardPage() {
           {
             icon: '📈',
             label: '지난 면접 대비',
-            value: scoreTrend != null ? `${scoreTrend > 0 ? '+' : ''}${scoreTrend}점` : '—',
-            sub: scoreTrend != null ? (scoreTrend > 0 ? '상승 중이에요 🎉' : scoreTrend < 0 ? '하락했어요, 힘내세요' : '유지 중이에요') : '데이터 부족',
+            value: scoreTrend != null ? `${scoreTrend > 0 ? '+' : ''}${scoreTrend}점` : '?',
+            sub: scoreTrend != null ? (scoreTrend > 0 ? '상승 중이에요' : scoreTrend < 0 ? '하락했어요, 힘내세요' : '유지 중이에요') : '데이터 부족',
             color: scoreTrend != null ? (scoreTrend > 0 ? 'var(--success)' : scoreTrend < 0 ? '#e05252' : 'var(--text)') : 'var(--text-muted)',
             bg: scoreTrend != null ? (scoreTrend > 0 ? 'var(--bg-success)' : scoreTrend < 0 ? 'var(--bg-error)' : 'var(--bg)') : 'var(--bg)',
             border: scoreTrend != null ? (scoreTrend > 0 ? 'var(--bg-success)' : scoreTrend < 0 ? 'var(--border-error)' : 'var(--border-light)') : 'var(--border-light)',
@@ -178,7 +220,7 @@ function DashboardPage() {
           {
             icon: '🏆',
             label: '전체 랭킹',
-            value: percentile ? `상위 ${percentile}%` : '—',
+            value: percentile ? `상위 ${percentile}%` : '?',
             sub: percentile ? (percentile <= 10 ? '최상위권이에요!' : percentile <= 30 ? '상위권에 있어요' : '꾸준히 올라가고 있어요') : '면접 후 집계됩니다',
             color: 'var(--accent)',
             bg: 'var(--bg-indigo)',
@@ -203,7 +245,7 @@ function DashboardPage() {
         ))}
       </div>
 
-      {/* ══ C. 목표 진행 바 ══ */}
+      {/* C. 목표 진행 바 */}
       {avgScore != null && (
         <div style={{
           background: 'var(--surface)', borderRadius: 16, padding: '20px 24px', marginBottom: 16,
@@ -220,7 +262,7 @@ function DashboardPage() {
                 }}>목표 {GOAL_SCORE}점</span>
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: toGoal <= 0 ? 'var(--success)' : 'var(--text)' }}>
-                {toGoal <= 0 ? '🎉 목표 달성!' : `+${toGoal}점 남았어요`}
+                {toGoal <= 0 ? '목표 달성!' : `+${toGoal}점 남았어요`}
               </span>
             </div>
             {/* Progress bar */}
@@ -256,7 +298,7 @@ function DashboardPage() {
         </div>
       )}
 
-      {/* ══ D+E. AI 코칭 + 성장 요약 ══ */}
+      {/* D+E. AI 코칭 + 성장 요약 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14, marginBottom: 16 }}>
 
         {/* D. AI 코칭 카드 */}
@@ -272,41 +314,64 @@ function DashboardPage() {
             }}>🤖</div>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>AI 코칭 리포트</h3>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>최근 면접 분석 기반</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {coachingSession
+                  ? `${coachingSession.title || '최근 면접'} 분석 기반`
+                  : '완료된 면접 후 자동 생성됩니다'}
+              </p>
             </div>
-            <span style={{
-              marginLeft: 'auto', fontSize: 10, fontWeight: 700,
-              background: 'var(--bg-error)', color: 'var(--danger)',
-              padding: '3px 9px', borderRadius: 99, border: '1px solid var(--border-error)',
-            }}>개선 필요 2가지</span>
+            {coachingItems.length > 0 && (
+              <span style={{
+                marginLeft: 'auto', fontSize: 10, fontWeight: 700,
+                background: 'var(--bg-error)', color: 'var(--danger)',
+                padding: '3px 9px', borderRadius: 99, border: '1px solid var(--border-error)',
+              }}>{`개선 포인트 ${coachingItems.length}가지`}</span>
+            )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {MOCK_COACHING.map((item, i) => (
-              <div key={i} style={{
-                background: 'var(--bg)', borderRadius: 12, padding: '14px 16px',
-                border: '1px solid var(--border-light)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{item.title}</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{item.desc}</p>
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      background: 'var(--primary-light)', borderRadius: 7, padding: '5px 10px',
-                    }}>
-                      <span style={{ fontSize: 10 }}>💡</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)' }}>{item.tip}</span>
+          {coachingItems.length === 0 ? (
+            <div style={{
+              background: 'var(--bg)', borderRadius: 12, padding: '28px 20px',
+              border: '1px dashed var(--border)', textAlign: 'center',
+              color: 'var(--text-muted)',
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>📝</div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                아직 코칭 리포트가 없어요
+              </p>
+              <p style={{ fontSize: 12, lineHeight: 1.7 }}>
+                완료된 면접이 생기면 부족한 부분과 개선 방향을
+                자동으로 정리해드립니다.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {coachingItems.map((item) => (
+                <div key={item.title} style={{
+                  background: 'var(--bg)', borderRadius: 12, padding: '14px 16px',
+                  border: '1px solid var(--border-light)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{item.title}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{item.desc}</p>
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: 'var(--primary-light)', borderRadius: 7, padding: '5px 10px',
+                      }}>
+                        <span style={{ fontSize: 10 }}>💡</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)' }}>{item.tip}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <button
-            onClick={() => navigate('/interview/setup')}
+            onClick={() => navigate(coachingSession ? `/interview/result/${coachingSession.id}` : '/interview/setup')}
             style={{
               width: '100%', marginTop: 14, padding: '11px',
               background: 'var(--primary-light)', color: 'var(--primary)',
@@ -317,7 +382,7 @@ function DashboardPage() {
             onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = 'var(--surface)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)' }}
           >
-            이 피드백 반영해서 다시 도전 →
+            {coachingSession ? '이 피드백 자세히 보기 →' : '첫 면접 시작하기 →'}
           </button>
         </div>
 
@@ -339,7 +404,7 @@ function DashboardPage() {
                 <p style={{ fontSize: 26, fontWeight: 900, color: scoreTrend != null && scoreTrend > 0 ? 'var(--success)' : scoreTrend != null && scoreTrend < 0 ? '#e05252' : 'var(--text)' }}>
                   {scoreTrend != null
                     ? `${scoreTrend > 0 ? '▲ +' : scoreTrend < 0 ? '▼ ' : ''}${scoreTrend}점`
-                    : sessions.length === 0 ? '—' : '첫 기록'
+                    : sessions.length === 0 ? '?' : '첫 기록'
                   }
                 </p>
                 {scoreTrend != null && (
@@ -352,7 +417,7 @@ function DashboardPage() {
               <div>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>전체 랭킹</p>
                 <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--accent)' }}>
-                  {percentile ? `상위 ${percentile}%` : '—'}
+                  {percentile ? `상위 ${percentile}%` : '?'}
                 </p>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                   {percentile ? '꾸준히 상위권에 있어요' : '면접 후 집계됩니다'}
@@ -369,7 +434,7 @@ function DashboardPage() {
           }}>
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>총 면접 횟수</p>
-              <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{sessions.length}회</p>
+              <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{totalInterviews}회</p>
             </div>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
@@ -380,7 +445,7 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ F. 차트 + 기록 ══ */}
+      {/* F. 차트 + 기록 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14 }}>
 
         {/* Chart */}
@@ -469,7 +534,7 @@ function DashboardPage() {
               <span style={{
                 fontSize: 15, fontWeight: 800,
                 color: s.feedback?.overallScore >= 80 ? 'var(--success)' : s.feedback?.overallScore >= 60 ? 'var(--warning)' : '#e05252',
-              }}>{s.feedback?.overallScore ?? '—'}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>점</span></span>
+              }}>{s.feedback?.overallScore ?? '?'}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>점</span></span>
             </div>
           ))}
         </div>
@@ -479,3 +544,4 @@ function DashboardPage() {
 }
 
 export default DashboardPage
+
