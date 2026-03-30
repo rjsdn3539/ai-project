@@ -27,6 +27,7 @@ import WrongNotesPage from '../pages/WrongNotesPage'
 import PaymentPage from '../pages/PaymentPage'
 import FaqPage from '../pages/FaqPage'
 import InquiryPage from '../pages/InquiryPage'
+import MyInquiriesPage from '../pages/MyInquiriesPage'
 import AchievementsPage from '../pages/AchievementsPage'
 
 function PrivateRoute({ children }) {
@@ -74,6 +75,7 @@ const router = createBrowserRouter([
       { path: '/orders',       element: <PrivateRoute><OrderPage /></PrivateRoute> },
       { path: '/payment',      element: <PrivateRoute><PaymentPage /></PrivateRoute> },
       { path: '/inquiry',      element: <PrivateRoute><InquiryPage /></PrivateRoute> },
+      { path: '/my-inquiries', element: <PrivateRoute><MyInquiriesPage /></PrivateRoute> },
       { path: '/achievements', element: <PrivateRoute><AchievementsPage /></PrivateRoute> },
       { path: '/admin',        element: <PrivateRoute><AdminPage /></PrivateRoute> },
     ],

@@ -24,6 +24,7 @@ const PROFILE_MENU = [
   { to: '/achievements',      icon: '🏆', label: '업적 & 뱃지' },
   { to: '/faq',               icon: '❓', label: 'FAQ'        },
   { to: '/inquiry',           icon: '✉️', label: '문의하기'   },
+  { to: '/my-inquiries',      icon: '🗂️', label: '내 문의'    },
 ]
 
 const TIER_COLOR = { FREE: '#b3a99e', STANDARD: '#7c6af0', PRO: '#9b5de5', PREMIUM: 'var(--warning)' }
