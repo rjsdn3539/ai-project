@@ -108,6 +108,7 @@ function BookDetailPage() {
   const [reviews, setReviews]         = useState([])
   const [myRating, setMyRating]       = useState(0)
   const [myText, setMyText]           = useState('')
+  const [editingReviewId, setEditingReviewId] = useState(null)
   const [submitting, setSubmitting]   = useState(false)
   const [reviewError, setReviewError] = useState('')
 
@@ -115,7 +116,10 @@ function BookDetailPage() {
     if (id) setReviews(getBookReviews(id))
   }, [id])
 
-  const alreadyReviewed = reviews.some((r) => r.userId === user?.id)
+  const isAdmin = user?.role === 'ADMIN'
+  const myReview = reviews.find((r) => r.userId === user?.id)
+  const alreadyReviewed = Boolean(myReview)
+  const isEditing = editingReviewId !== null
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : null
@@ -124,21 +128,55 @@ function BookDetailPage() {
     if (myRating === 0) { setReviewError('별점을 선택해주세요.'); return }
     if (myText.trim().length < 10) { setReviewError('리뷰를 10자 이상 작성해주세요.'); return }
     setSubmitting(true)
-    const newReview = {
-      id: Date.now().toString(),
+    const reviewPayload = {
       userId: user?.id,
       author: user?.name || '익명',
       rating: myRating,
       text: myText.trim(),
       date: new Date().toISOString().slice(0, 10),
     }
-    const updated = [newReview, ...reviews]
+    const updated = isEditing
+      ? reviews.map((review) => (
+        review.id === editingReviewId
+          ? { ...review, ...reviewPayload }
+          : review
+      ))
+      : [{ id: Date.now().toString(), ...reviewPayload }, ...reviews]
     saveBookReviews(id, updated)
     setReviews(updated)
     setMyRating(0)
     setMyText('')
+    setEditingReviewId(null)
     setReviewError('')
     setSubmitting(false)
+  }
+
+  const handleEditReview = (review) => {
+    setEditingReviewId(review.id)
+    setMyRating(review.rating)
+    setMyText(review.text)
+    setReviewError('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingReviewId(null)
+    setMyRating(0)
+    setMyText('')
+    setReviewError('')
+  }
+
+  const handleDeleteReview = (review) => {
+    const canDelete = review.userId === user?.id || isAdmin
+    if (!canDelete) return
+    if (!window.confirm('리뷰를 삭제할까요?')) return
+
+    const updated = reviews.filter((item) => item.id !== review.id)
+    saveBookReviews(id, updated)
+    setReviews(updated)
+
+    if (editingReviewId === review.id) {
+      handleCancelEdit()
+    }
   }
 
   useEffect(() => {
@@ -531,7 +569,10 @@ function BookDetailPage() {
         {/* 리뷰 목록 */}
         {reviews.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
-            {reviews.map((r) => (
+            {reviews.map((r) => {
+              const canManageReview = r.userId === user?.id || isAdmin
+
+              return (
               <div key={r.id} style={{
                 padding: '18px 20px', background: 'var(--bg)',
                 borderRadius: 14, border: '1px solid var(--border-light)',
@@ -548,16 +589,65 @@ function BookDetailPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{r.author}</span>
+                      {r.userId === user?.id && (
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: 999,
+                          background: 'var(--primary-light)',
+                          color: 'var(--primary)',
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}>
+                          내 리뷰
+                        </span>
+                      )}
                       <Stars rating={r.rating} size={13} />
                     </div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.date}</span>
                   </div>
+                  {canManageReview && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {r.userId === user?.id && (
+                        <button
+                          onClick={() => handleEditReview(r)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--primary)',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            padding: 0,
+                          }}
+                        >
+                          수정
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteReview(r)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--danger)',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          padding: 0,
+                        }}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75, margin: 0 }}>
                   {r.text}
                 </p>
               </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '28px 0', marginBottom: 24 }}>
@@ -585,16 +675,53 @@ function BookDetailPage() {
               }}
             >로그인하기</button>
           </div>
-        ) : alreadyReviewed ? (
+        ) : alreadyReviewed && !isEditing ? (
           <div style={{
             padding: '16px 20px', borderRadius: 12,
             background: 'var(--bg-success)', border: '1px solid var(--border-success)',
-            display: 'flex', alignItems: 'center', gap: 10,
+            display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between',
+            flexWrap: 'wrap',
           }}>
-            <span style={{ fontSize: 18 }}>✅</span>
-            <p style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600, margin: 0 }}>
-              이미 리뷰를 작성했어요. 감사합니다!
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>✅</span>
+              <p style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600, margin: 0 }}>
+                이미 리뷰를 작성했어요. 수정이나 삭제가 가능합니다.
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                onClick={() => handleEditReview(myReview)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  border: '1px solid var(--primary-border)',
+                  background: '#fff',
+                  color: 'var(--primary)',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                내 리뷰 수정
+              </button>
+              <button
+                onClick={() => handleDeleteReview(myReview)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border-error)',
+                  background: '#fff',
+                  color: 'var(--danger)',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                내 리뷰 삭제
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{
@@ -602,7 +729,7 @@ function BookDetailPage() {
             background: 'var(--bg)', border: '1.5px solid var(--border)',
           }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>
-              📝 리뷰 작성
+              {isEditing ? '✏️ 리뷰 수정' : '📝 리뷰 작성'}
             </h3>
             {/* 별점 선택 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
@@ -637,19 +764,39 @@ function BookDetailPage() {
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {myText.length}자
               </span>
-              <button
-                onClick={handleSubmitReview}
-                disabled={submitting}
-                style={{
-                  padding: '10px 24px', borderRadius: 10, border: 'none',
-                  background: 'linear-gradient(135deg, var(--primary), var(--accent))',
-                  color: '#fff', fontWeight: 700, fontSize: 14,
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit', opacity: submitting ? 0.7 : 1,
-                }}
-              >
-                리뷰 등록
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {isEditing && (
+                  <button
+                    onClick={handleCancelEdit}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      border: '1px solid var(--border)',
+                      background: '#fff',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 700,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    취소
+                  </button>
+                )}
+                <button
+                  onClick={handleSubmitReview}
+                  disabled={submitting}
+                  style={{
+                    padding: '10px 24px', borderRadius: 10, border: 'none',
+                    background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+                    color: '#fff', fontWeight: 700, fontSize: 14,
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', opacity: submitting ? 0.7 : 1,
+                  }}
+                >
+                  {isEditing ? '리뷰 수정' : '리뷰 등록'}
+                </button>
+              </div>
             </div>
           </div>
         )}

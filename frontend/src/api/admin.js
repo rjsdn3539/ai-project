@@ -49,3 +49,9 @@ export const getAdminDeliveries = (page = 0, size = 10, deliveryStatus = '') =>
 
 export const updateDelivery = (id, deliveryStatus, trackingNumber) =>
   api.patch(`/api/v1/admin/orders/${id}/delivery`, { deliveryStatus, trackingNumber })
+
+export const getAdminInquiries = (page = 0, size = 5, status = '', search = '') =>
+  api.get('/api/v1/admin/inquiries', { params: { page, size, status: status || undefined, search: search || undefined } })
+
+export const answerInquiry = (id, answer) =>
+  api.patch(`/api/v1/admin/inquiries/${id}/answer`, { answer })

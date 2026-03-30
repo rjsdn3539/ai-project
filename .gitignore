@@ -86,3 +86,38 @@ ai-server/*.egg-info/
 /.nb-gradle/
 
 backend/.gradle-user/
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend - Gradle / Spring Boot
+backend/.gradle/
+backend/build/
+backend/out/
+backend/logs/
+backend/uploads/
+
+# Frontend - Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Python (ai-service 쓰는 경우)
+ai-service/.venv/
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/.env
+
+# Logs
+*.log

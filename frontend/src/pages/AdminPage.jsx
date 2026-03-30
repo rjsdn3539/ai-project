@@ -944,6 +944,291 @@ function DeliveryTab() {
   )
 }
 
+// ── 문의 관리 ───────────────────────────────────────────────────────────────────
+const INQUIRY_STATUS_LABELS = {
+  PENDING: '답변 대기',
+  ANSWERED: '답변 완료',
+}
+
+function InquiryStatusBadge({ status }) {
+  const colors = {
+    PENDING: ['var(--bg-warning)', 'var(--warning)'],
+    ANSWERED: ['var(--bg-success)', 'var(--success)'],
+  }
+
+  const [bg, fg] = colors[status] || ['var(--bg-warm)', 'var(--text-secondary)']
+
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '2px 10px',
+      borderRadius: 20,
+      fontSize: 12,
+      fontWeight: 600,
+      background: bg,
+      color: fg,
+    }}>
+      {INQUIRY_STATUS_LABELS[status] || status}
+    </span>
+  )
+}
+
+function InquiryManagementTab() {
+  const [inquiries, setInquiries] = useState([])
+  const [filterStatus, setFilterStatus] = useState('')
+  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [answerDraft, setAnswerDraft] = useState('')
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback((nextPage = 0, nextStatus = '', nextSearch = '') => {
+    setLoading(true)
+    adminApi.getAdminInquiries(nextPage, 5, nextStatus, nextSearch)
+      .then((response) => {
+        const data = response.data.data
+        setInquiries(data.items || [])
+        setPage(data.page || 0)
+        setTotalPages(data.totalPages || 0)
+        setTotalElements(data.totalElements || 0)
+      })
+      .catch(() => {
+        setInquiries([])
+        setPage(0)
+        setTotalPages(0)
+        setTotalElements(0)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    load(0, filterStatus, search)
+  }, [filterStatus, search, load])
+
+  const handleStartAnswer = (inquiry) => {
+    setEditingId(inquiry.id)
+    setAnswerDraft(inquiry.adminAnswer || '')
+  }
+
+  const handleSaveAnswer = async () => {
+    if (!editingId) return
+    if (!answerDraft.trim()) {
+      alert('답변 내용을 입력해주세요.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await adminApi.answerInquiry(editingId, answerDraft)
+      setEditingId(null)
+      setAnswerDraft('')
+      load(page, filterStatus, search)
+    } catch (error) {
+      alert(error?.response?.data?.error?.message || '답변 저장에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSearch = (event) => {
+    event.preventDefault()
+    const nextSearch = searchInput.trim()
+    setEditingId(null)
+    setAnswerDraft('')
+    if (nextSearch === search) {
+      load(0, filterStatus, nextSearch)
+      return
+    }
+    setSearch(nextSearch)
+  }
+
+  const handleResetSearch = () => {
+    setEditingId(null)
+    setAnswerDraft('')
+    setSearch('')
+    setSearchInput('')
+    setPage(0)
+  }
+
+  return (
+    <div style={S.card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+        <h3 style={{ fontWeight: 700 }}>문의 관리</h3>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
+            <input
+              style={{ ...S.input, width: 220 }}
+              placeholder="제목, 문의자, 이메일 검색"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button type="submit" style={S.btn()}>검색</button>
+            <button type="button" style={S.btnOutline} onClick={handleResetSearch}>초기화</button>
+          </form>
+          {[['', '전체'], ['PENDING', '답변 대기'], ['ANSWERED', '답변 완료']].map(([value, label]) => (
+            <button
+              key={value}
+              style={filterStatus === value ? S.btn() : S.btnOutline}
+              onClick={() => {
+                setFilterStatus(value)
+                setPage(0)
+                setEditingId(null)
+                setAnswerDraft('')
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {(search || filterStatus) && (
+        <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {search && (
+            <span>
+              검색어: <strong style={{ color: 'var(--text)' }}>{search}</strong>
+            </span>
+          )}
+          {filterStatus && (
+            <span>
+              상태: <strong style={{ color: 'var(--text)' }}>{INQUIRY_STATUS_LABELS[filterStatus]}</strong>
+            </span>
+          )}
+          <span>
+            검색 결과: <strong style={{ color: 'var(--text)' }}>전체 {totalElements}건</strong>
+          </span>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+          문의 내역을 불러오는 중입니다.
+        </div>
+      ) : inquiries.length === 0 ? (
+        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+          등록된 문의가 없습니다.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {inquiries.map((inquiry) => (
+            <div key={inquiry.id} style={{
+              border: '1px solid var(--border-light)',
+              borderRadius: 14,
+              background: 'var(--bg)',
+              padding: '18px 20px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <InquiryStatusBadge status={inquiry.status} />
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{inquiry.category}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{inquiry.id}</span>
+                  </div>
+                  <h4 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', margin: 0 }}>{inquiry.subject}</h4>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>문의자</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>
+                    {inquiry.name} / {inquiry.email}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>접수일</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>
+                    {(inquiry.createdAt || '').slice(0, 16).replace('T', ' ')}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>답변일</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>
+                    {inquiry.answeredAt ? inquiry.answeredAt.slice(0, 16).replace('T', ' ') : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>답변자</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>
+                    {inquiry.answeredBy || '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>문의 내용</p>
+                <div style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  color: 'var(--text-secondary)',
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {inquiry.message}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>관리자 답변</p>
+                  {editingId === inquiry.id ? (
+                    <div style={S.actionRow}>
+                      <button style={S.btn('var(--success)')} onClick={handleSaveAnswer} disabled={saving}>
+                        {saving ? '저장 중...' : '저장'}
+                      </button>
+                      <button style={S.btn('var(--text-secondary)')} onClick={() => { setEditingId(null); setAnswerDraft('') }} disabled={saving}>취소</button>
+                    </div>
+                  ) : (
+                    <button style={S.btn('var(--primary)')} onClick={() => handleStartAnswer(inquiry)}>
+                      {inquiry.adminAnswer ? '답변 수정' : '답변 작성'}
+                    </button>
+                  )}
+                </div>
+
+                {editingId === inquiry.id ? (
+                  <textarea
+                    value={answerDraft}
+                    onChange={(e) => setAnswerDraft(e.target.value)}
+                    rows={5}
+                    placeholder="문의에 대한 답변을 입력해주세요."
+                    style={{
+                      ...S.input,
+                      resize: 'vertical',
+                      minHeight: 120,
+                      lineHeight: 1.7,
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    background: inquiry.adminAnswer ? 'var(--bg-success)' : 'var(--surface)',
+                    border: `1px solid ${inquiry.adminAnswer ? 'var(--border-success)' : 'var(--border-light)'}`,
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    color: inquiry.adminAnswer ? 'var(--success)' : 'var(--text-muted)',
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                  }}>
+                    {inquiry.adminAnswer || '아직 등록된 답변이 없습니다.'}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <Pagination page={page} totalPages={totalPages} onChange={(nextPage) => load(nextPage, filterStatus, search)} />
+    </div>
+  )
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────────
 const TABS = [
   { label: '대시보드', icon: '📊' },
@@ -952,6 +1237,7 @@ const TABS = [
   { label: '도서 관리', icon: '📚' },
   { label: '결제 관리', icon: '💳' },
   { label: '배송 관리', icon: '🚚' },
+  { label: '문의 관리', icon: '✉️' },
 ]
 
 function AdminPage() {
@@ -982,6 +1268,7 @@ function AdminPage() {
       {activeTab === 3 && <BooksTab />}
       {activeTab === 4 && <PaymentsTab />}
       {activeTab === 5 && <DeliveryTab />}
+      {activeTab === 6 && <InquiryManagementTab />}
     </div>
   )
 }
