@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(mkdir:*)",
+      "Bash(xargs grep:*)",
+      "Bash(npm install:*)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:8080/actuator/env)",
+      "Bash(curl -s http://localhost:8080/api/v1/health)",
+      "Bash(curl:*)",
+      "Bash(./gradlew compileJava)",
+      "Bash(./gradlew dependencies:*)",
+      "Bash(xargs -I{} jar tf {})",
+      "Bash(grep -i MappingJackson[^2])",
+      "Bash(find ~/.gradle -name *.jar -not -name *sources* -not -name *javadoc*)",
+      "Bash(xargs -I{} sh -c \"jar tf \"\"$1\"\" 2>/dev/null | grep \"\"MappingJacksonHttpMessageConverter.class\"\" | head -1 | sed \"\"s|^|$1: |\"\"\" _ {})",
+      "Bash(find ~/.gradle -path */org.springframework/spring-web-jackson3* -name *.jar)",
+      "Bash(find ~/.gradle -name spring-web-jackson3*.jar)",
+      "Bash(xargs -I{} sh -c \"echo \"\"=== $1 ===\"\"; jar tf \"\"$1\"\" | grep -i \"\"jackson\"\" | head -20\" _ {})",
+      "Bash(/dev/null -exec sh -c \"jar tf \"\"$1\"\" 2>/dev/null | grep -q \"\"MappingJacksonHttpMessageConverter.class\"\" && echo \"\"$1\"\"\" _ {})",
+      "Bash(2)",
+      "Bash(find ~/.gradle/caches -name spring-webmvc-7*.jar -not -name *sources*)",
+      "Bash(jar tf:*)",
+      "Bash(taskkill /F /IM java.exe)",
+      "Bash(taskkill //F //IM java.exe)",
+      "Bash(mysql:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); beans=[k for k in d.get\\(''''contexts'''',{}\\).get\\(''''application'''',{}\\).get\\(''''beans'''',{}\\) if ''''Ai'''' in k or ''''ai'''' in k.lower\\(\\)]; print\\(beans\\)\")",
+      "Bash(xargs cat:*)",
+      "Bash(python:*)",
+      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend -name *.log)",
+      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/.gradle -name *.jar)",
+      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend -name *.jar)",
+      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/build/classes -name HttpAiIntegrationService*.class -o -name HttpAiIntegrationService.class)",
+      "Bash(find C:/Users/M/Videos/ai-interview-platform-main/backend/bin -name HttpAiIntegrationService*.class)",
+      "Bash(grep -r \"recommendedAnswer\\\\|모범\" C:UsersMVideosai-interview-platform-main --include=*.java --include=*.jsx --include=*.js --include=*.py)",
+      "Bash(powershell -Command \":*)",
+      "Bash(npx vite:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

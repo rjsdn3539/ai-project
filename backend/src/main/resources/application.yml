@@ -1,0 +1,53 @@
+﻿spring:
+  application:
+    name: backend
+  config:
+    import: optional:file:.env[.properties],optional:file:backend/.env[.properties]
+  profiles:
+    default: local
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:none}
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  error:
+    include-message: always
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY:KJLg+mfndIn/zvuKgcfOsO1cvWVQNGBzR6SgHlyzD3pxKVkc9HmxeF+XakpJaVNunq1T+pYovINVMQYgNqyd6g==}
+  access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:7200}
+  refresh-token-expiration-seconds: ${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS:1209600}
+
+admin:
+  email: ${ADMIN_EMAIL:admin@aimentor.com}
+  password: ${ADMIN_PASSWORD:admin1234}
+  name: ${ADMIN_NAME:admin}
+
+integration:
+  ai:
+    provider: ${AI_PROVIDER:python-ai}
+    api-key: ${AI_API_KEY:}
+    base-url: ${AI_BASE_URL:http://localhost:8000}
+    model: ${AI_MODEL:gpt-4o}
+  speech:
+    provider: ${SPEECH_PROVIDER:stub-speech}
+    api-key: ${SPEECH_API_KEY:}
+    base-url: ${SPEECH_BASE_URL:}
+    voice: ${SPEECH_VOICE:}
+  juso:
+    base-url: ${JUSO_BASE_URL:https://business.juso.go.kr/addrlink/addrLinkApi.do}
+    api-key: ${JUSO_API_KEY:}
+
+aladin:
+  base-url: http://www.aladin.co.kr/ttb/api
+  ttb-key: ${ALADIN_TTB_KEY:}
