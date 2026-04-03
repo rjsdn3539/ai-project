@@ -81,6 +81,6 @@ jobs:
               -e AI_API_KEY='${{ secrets.OPENAI_API_KEY }}' \
               -e AI_PROVIDER=python \
               -e SPEECH_PROVIDER=python \
-              -e AI_SERVER_URL='http://aimentor-ai-server:8000' \
+              -e AI_BASE_URL='http://aimentor-ai-server:8000' \
               $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           EOF
