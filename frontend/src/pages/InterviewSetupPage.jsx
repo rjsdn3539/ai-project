@@ -286,6 +286,7 @@ function AddJobPostingForm({ onSaved, onCancel }) {
   const [jobText, setJobText] = useState('')
   const [company, setCompany] = useState('')
   const [position, setPosition] = useState('')
+  const [parsedDescription, setParsedDescription] = useState('')
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -315,6 +316,7 @@ function AddJobPostingForm({ onSaved, onCancel }) {
       const result = data.data
       if (result.companyName) setCompany(result.companyName)
       if (result.positionTitle) setPosition(result.positionTitle)
+      if (result.description) setParsedDescription(result.description)
     } catch {
       setParseError(inputMode === 'url'
         ? 'URL을 분석하지 못했습니다. 텍스트 방식을 사용하거나 직접 입력해주세요.'
@@ -325,7 +327,7 @@ function AddJobPostingForm({ onSaved, onCancel }) {
   const handleSave = async () => {
     if (!company.trim()) { setError('회사명을 입력해주세요.'); return }
     if (!position.trim()) { setError('직무명을 입력해주세요.'); return }
-    const description = inputMode === 'text' ? jobText.trim() : jobUrl.trim()
+    const description = parsedDescription || (inputMode === 'text' ? jobText.trim() : jobUrl.trim())
     if (!description) { setError('채용공고 내용 또는 URL을 입력해주세요.'); return }
     setSaving(true)
     setError('')
