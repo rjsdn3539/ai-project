@@ -2,7 +2,7 @@ import axios from 'axios'
 import { dispatchAuthCleared } from '../utils/userScopedStorage'
 
 const api = axios.create({
-  baseURL: '',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
 })
 
 // 요청 인터셉터: Authorization 헤더 자동 추가
