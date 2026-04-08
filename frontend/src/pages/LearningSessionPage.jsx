@@ -329,7 +329,7 @@ function LearningSessionPage() {
     let firstProblemReceived = false
 
     const token = localStorage.getItem('accessToken')
-    fetch('http://43.202.191.24:8080/api/learning/generate/stream', {
+    fetch('/api/learning/generate/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

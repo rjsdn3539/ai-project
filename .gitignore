@@ -74,7 +74,7 @@ env/
 
 ai-server/__pycache__/
 ai-server/.venv/
-ai-server/venv/
+venv/
 ai-server/env/
 ai-server/build/
 ai-server/dist/

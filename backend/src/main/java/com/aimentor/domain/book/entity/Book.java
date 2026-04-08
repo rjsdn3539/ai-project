@@ -51,6 +51,9 @@ public class Book extends BaseTimeEntity {
     private Integer priceStandard;
 
     @Column(nullable = false)
+    private Integer price;
+
+    @Column(nullable = false)
     private Integer priceSales;
 
     @Column(nullable = false)
@@ -73,6 +76,7 @@ public class Book extends BaseTimeEntity {
         this.title = title;
         this.author = author;
         this.publisher = publisher;
+        this.price = priceSales;
         this.priceSales = priceSales;
         this.stock = stock;
         this.coverUrl = coverUrl;
@@ -108,6 +112,7 @@ public class Book extends BaseTimeEntity {
         this.coverUrl = coverUrl;
         this.customerReviewRank = customerReviewRank;
         this.priceStandard = priceStandard;
+        this.price = priceSales;
         this.priceSales = priceSales;
         this.stock = stock;
         this.saleStatus = saleStatus;
@@ -116,6 +121,6 @@ public class Book extends BaseTimeEntity {
     }
 
     public Integer getPrice() {
-        return priceSales;
+        return price != null ? price : priceSales;
     }
 }

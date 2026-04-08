@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mariadb://localhost:3308/ai_interview
-    username: aimentor
-    password: 1234
+    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3308}/${DB_NAME:ai_interview}
+    username: ${DB_USERNAME:aimentor}
+    password: ${DB_PASSWORD:1234}
     driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:

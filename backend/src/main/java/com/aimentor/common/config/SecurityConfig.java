@@ -67,6 +67,8 @@ public class SecurityConfig {
                 "http://127.0.0.1:5173",
                 "http://localhost:5174",
                 "http://127.0.0.1:5174",
+                "http://3.39.232.139",
+                "http://43.202.191.24",
                 "https://www.leehanna.shop",
                 "https://leehanna.shop"
         ));

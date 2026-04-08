@@ -1,5 +1,7 @@
 package com.aimentor.common.init;
 
+import com.aimentor.domain.book.entity.Book;
+import com.aimentor.domain.book.repository.BookRepository;
 import com.aimentor.domain.subscription.SubscriptionTier;
 import com.aimentor.domain.user.entity.Role;
 import com.aimentor.domain.user.entity.User;
@@ -19,6 +21,7 @@ public class DataInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BookRepository bookRepository;
 
     @Value("${admin.email:admin@aimentor.com}")
     private String adminEmail;
@@ -38,6 +41,7 @@ public class DataInitializer implements ApplicationRunner {
                     userRepository.save(existing);
                 }
             });
+            initMockBook();
             return;
         }
 
@@ -51,5 +55,27 @@ public class DataInitializer implements ApplicationRunner {
 
         userRepository.save(admin);
         log.info("초기 관리자 계정 생성: {}", adminEmail);
+
+        initMockBook();
+    }
+
+    private void initMockBook() {
+        if (bookRepository.count() > 0) return;
+
+        Book book = Book.builder()
+                .title("클린 코드")
+                .author("로버트 C. 마틴")
+                .publisher("인사이트")
+                .isbn13("9788966260959")
+                .price(32000)
+                .priceSales(32000)
+                .stock(10)
+                .coverUrl("")
+                .description("읽기 좋은 코드를 작성하는 방법과 소프트웨어 장인 정신을 담은 필독서")
+                .saleStatus("판매중")
+                .source("mock")
+                .build();
+        bookRepository.save(book);
+        log.info("목 도서 데이터 생성: {}", book.getTitle());
     }
 }
