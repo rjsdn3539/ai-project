@@ -78,7 +78,7 @@ jobs:
               -e JWT_SECRET_KEY='${{ secrets.JWT_SECRET }}' \
               -e JUSO_API_KEY='${{ secrets.JUSO_API_KEY }}' \
               -e AI_API_KEY='${{ secrets.OPENAI_API_KEY }}' \
-              -e AI_PROVIDER=python \
+              -e AI_PROVIDER=python-ai \
               -e SPEECH_PROVIDER=python \
               -e AI_BASE_URL='http://localhost:8000' \
               $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
