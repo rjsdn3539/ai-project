@@ -127,6 +127,8 @@ function InterviewSessionPage() {
   const [answerText, setAnswerText] = useState('')
   const [done, setDone] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [recording, setRecording] = useState(false)
+  const recognitionRef = useState(null)
 
   // 면접 중 네비게이션 차단
   const blocker = useBlocker(
@@ -180,6 +182,37 @@ function InterviewSessionPage() {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'ko-KR'
     window.speechSynthesis.speak(utterance)
+  }
+
+  const toggleRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 사용해주세요.')
+      return
+    }
+
+    if (recording) {
+      recognitionRef[0]?.stop()
+      setRecording(false)
+      return
+    }
+
+    window.speechSynthesis.cancel()
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'ko-KR'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
+      setAnswerText(transcript)
+    }
+    recognition.onend = () => setRecording(false)
+    recognition.onerror = () => setRecording(false)
+
+    recognitionRef[0] = recognition
+    recognition.start()
+    setRecording(true)
   }
 
   const handleSubmit = async () => {
@@ -320,30 +353,58 @@ function InterviewSessionPage() {
         </button>
       </div>
 
-      {/* Answer text input card */}
+      {/* Answer voice input card */}
       <div style={{
         background: 'var(--surface)', borderRadius: 16, padding: '32px',
         boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
       }}>
-        <textarea
-          value={answerText}
-          onChange={(e) => setAnswerText(e.target.value)}
-          placeholder="답변을 입력하세요..."
-          rows={6}
-          style={{
-            width: '100%', padding: '14px 16px', fontSize: 15, lineHeight: 1.7,
-            border: '1.5px solid var(--border-light)', borderRadius: 12,
-            resize: 'vertical', fontFamily: 'inherit', outline: 'none',
-            transition: 'border-color 0.2s',
-            boxSizing: 'border-box',
-          }}
-          onFocus={(e) => e.target.style.borderColor = '#7c3aed'}
-          onBlur={(e) => e.target.style.borderColor = ''}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {answerText.length} / 5,000자
-          </span>
+        {/* 마이크 버튼 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
+          <button
+            onClick={toggleRecording}
+            style={{
+              width: 80, height: 80, borderRadius: '50%', border: 'none', cursor: 'pointer',
+              background: recording
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              color: '#fff', fontSize: 32,
+              boxShadow: recording
+                ? '0 0 0 12px rgba(239,68,68,0.2), 0 0 0 24px rgba(239,68,68,0.1)'
+                : '0 0 0 12px rgba(79,70,229,0.15)',
+              animation: recording ? 'interviewPulse 1.2s ease-in-out infinite' : 'none',
+              transition: 'all 0.3s',
+            }}
+          >
+            {recording ? '⏹' : '🎙'}
+          </button>
+          <p style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: recording ? '#ef4444' : 'var(--text-secondary)' }}>
+            {recording ? '녹음 중... (클릭하면 중지)' : '마이크를 클릭해서 답변하세요'}
+          </p>
+        </div>
+
+        {/* 인식된 텍스트 */}
+        <div style={{
+          minHeight: 100, padding: '14px 16px', fontSize: 15, lineHeight: 1.7,
+          border: `1.5px solid ${answerText ? '#7c3aed' : 'var(--border-light)'}`,
+          borderRadius: 12, color: answerText ? 'var(--text)' : 'var(--text-secondary)',
+          background: 'var(--bg-warm)', marginBottom: 14,
+        }}>
+          {answerText || '음성으로 답변하면 여기에 텍스트로 표시됩니다...'}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
+            onClick={() => setAnswerText('')}
+            disabled={!answerText}
+            style={{
+              background: 'none', border: '1.5px solid var(--border)', borderRadius: 8,
+              padding: '8px 14px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)',
+              cursor: answerText ? 'pointer' : 'default', fontFamily: 'inherit',
+              opacity: answerText ? 1 : 0.4,
+            }}
+          >
+            다시 말하기
+          </button>
           <Button loading={submitting} onClick={handleSubmit} disabled={!answerText.trim()}>
             답변 제출 →
           </Button>
