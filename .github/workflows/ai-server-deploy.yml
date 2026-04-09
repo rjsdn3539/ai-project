@@ -67,6 +67,7 @@ jobs:
             docker pull $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
             docker stop aimentor-ai-server || true
             docker rm aimentor-ai-server || true
+            sudo fuser -k 8000/tcp || true
             docker run -d \
               --name aimentor-ai-server \
               --restart unless-stopped \
