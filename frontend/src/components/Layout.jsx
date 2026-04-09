@@ -18,6 +18,7 @@ const NAV_GUEST = [
 
 const PROFILE_MENU = [
   { to: '/profile',           icon: '👤', label: '내 프로필' },
+  { to: '/profile/resume',    icon: '📄', label: '내 문서 관리' },
   { to: '/interview/history', icon: '📋', label: '면접 기록' },
   { to: '/schedule',          icon: '📅', label: '면접 일정' },
   { to: '/dashboard',         icon: '📊', label: '내 통계'   },
