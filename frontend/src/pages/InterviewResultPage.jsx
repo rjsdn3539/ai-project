@@ -11,6 +11,40 @@ import {
   ensureAchievementStateLoaded,
 } from '../utils/achievements'
 
+const SUBJECT_KEYWORDS = {
+  '자바':        ['자바', 'java', 'jvm', 'oop', '객체지향', '컬렉션', '상속', '다형성', '인터페이스'],
+  '스프링':      ['스프링', 'spring', 'rest', 'api', '백엔드', 'mvc', 'di', 'ioc', '의존성'],
+  '데이터베이스': ['데이터베이스', 'db', 'sql', '쿼리', '인덱스', '트랜잭션', '정규화', '조인'],
+  '자바스크립트': ['자바스크립트', 'javascript', 'js', '프론트', 'dom', '비동기', 'promise', '클로저'],
+  '파이썬':      ['파이썬', 'python', '머신러닝', '데이터분석'],
+  'C++':         ['c++', 'cpp', '포인터', '메모리'],
+  '영어':        ['영어', 'english', '의사소통', '커뮤니케이션'],
+}
+
+const SUBJECT_META = {
+  '자바':        { icon: '☕', desc: 'OOP · JVM · 컬렉션' },
+  '스프링':      { icon: '🍃', desc: 'IoC · AOP · MVC' },
+  '데이터베이스': { icon: '🗄️', desc: 'SQL · 인덱스 · 트랜잭션' },
+  '자바스크립트': { icon: '🟨', desc: 'ES6+ · 비동기 · DOM' },
+  '파이썬':      { icon: '🐍', desc: '문법 · 라이브러리' },
+  'C++':         { icon: '⚡', desc: '포인터 · STL · 메모리' },
+  '영어':        { icon: '🇺🇸', desc: '문법 · 독해 · 어휘' },
+}
+
+function getRecommendedSubjects(weakPoints, positionTitle) {
+  const text = `${weakPoints || ''} ${positionTitle || ''}`.toLowerCase()
+  const matched = Object.entries(SUBJECT_KEYWORDS)
+    .filter(([, keywords]) => keywords.some(kw => text.includes(kw.toLowerCase())))
+    .map(([subject]) => subject)
+  // 매칭 없으면 포지션 기반 기본값
+  if (matched.length === 0) {
+    if (text.includes('백엔드') || text.includes('서버')) return ['자바', '스프링', '데이터베이스']
+    if (text.includes('프론트')) return ['자바스크립트']
+    return ['자바', '데이터베이스']
+  }
+  return matched.slice(0, 3)
+}
+
 function ScoreRing({ label, score, size = 80 }) {
   const color = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : '#ef4444'
   const bg = score >= 80 ? 'var(--bg-success)' : score >= 60 ? 'var(--bg-warning)' : 'var(--bg-error)'
@@ -325,6 +359,55 @@ function InterviewResultPage() {
           </div>
         ) : null}
       </div>
+
+      {/* 추천 학습 섹션 */}
+      {feedback.weakPoints && (() => {
+        const subjects = getRecommendedSubjects(feedback.weakPoints, report?.positionTitle)
+        return (
+          <div style={{
+            background: 'var(--surface)', borderRadius: 14, padding: '24px',
+            boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
+            marginTop: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 18 }}>📚</span>
+              <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', margin: 0 }}>부족한 부분 학습 추천</h2>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              면접 결과를 분석해 아래 과목 학습을 추천합니다.
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {subjects.map(subject => {
+                const meta = SUBJECT_META[subject] || { icon: '📖', desc: '' }
+                return (
+                  <button
+                    key={subject}
+                    onClick={() => navigate('/learning/session', {
+                      state: { subject, difficulty: 'MEDIUM', count: 10 }
+                    })}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '12px 18px', borderRadius: 12, cursor: 'pointer',
+                      border: '1.5px solid #4f46e520',
+                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                      fontFamily: 'inherit', transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(79,70,229,0.2)'}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                  >
+                    <span style={{ fontSize: 22 }}>{meta.icon}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5', margin: 0 }}>{subject}</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>{meta.desc}</p>
+                    </div>
+                    <span style={{ fontSize: 12, color: '#7c3aed', marginLeft: 4 }}>→</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
         <Button variant="ghost" onClick={() => navigate('/interview/setup')}>다시 면접하기</Button>

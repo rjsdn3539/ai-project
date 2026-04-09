@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useBlocker } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import * as learningApi from '../api/learning'
+import * as bookApi from '../api/book'
 import Button from '../components/Button'
 import { checkAndUnlock } from '../utils/achievements'
 
@@ -144,7 +145,18 @@ function LearningLoadingScreen({ subject, difficulty }) {
 
 function ResultSummary({ problems, results, subject, onRetry }) {
   const [tab, setTab] = useState('all')
+  const [books, setBooks] = useState([])
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!subject) return
+    bookApi.getBooks(subject, 0)
+      .then(({ data }) => {
+        const list = data.data?.content || data.data || []
+        setBooks(list.slice(0, 4))
+      })
+      .catch(() => {})
+  }, [subject])
 
   const allItems = problems.map((p, i) => ({ ...p, ...(results[i] || {}) }))
   const score = allItems.filter(x => x.isCorrect).length
@@ -182,6 +194,72 @@ function ResultSummary({ problems, results, subject, onRetry }) {
           <Button onClick={() => navigate('/dashboard')}>대시보드로 →</Button>
         </div>
       </div>
+
+      {/* 추천 도서 섹션 */}
+      {books.length > 0 && (
+        <div style={{
+          background: 'var(--surface)', borderRadius: 14, padding: '24px',
+          boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
+          marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 18 }}>📖</span>
+            <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', margin: 0 }}>
+              {subject} 추천 도서
+            </h2>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            학습한 과목과 관련된 도서를 추천합니다.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            {books.map(book => (
+              <div
+                key={book.id}
+                onClick={() => navigate(`/books/${book.id}`)}
+                style={{
+                  display: 'flex', gap: 12, padding: '12px',
+                  background: 'var(--bg-warm)', borderRadius: 10,
+                  border: '1px solid var(--border-light)', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+              >
+                {book.coverUrl ? (
+                  <img src={book.coverUrl} alt={book.title}
+                    style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 52, height: 70, background: 'var(--border)', borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📚</div>
+                )}
+                <div style={{ overflow: 'hidden' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4,
+                    overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
+                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    {book.title}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>{book.author}</p>
+                  {book.priceSales && (
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>
+                      {book.priceSales.toLocaleString()}원
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => navigate('/books', { state: { keyword: subject } })}
+            style={{
+              width: '100%', marginTop: 12, padding: '10px',
+              background: 'none', border: '1.5px solid var(--border)',
+              borderRadius: 10, fontSize: 13, fontWeight: 600,
+              color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            {subject} 도서 더 보기 →
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[
