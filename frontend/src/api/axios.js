@@ -46,7 +46,7 @@ api.interceptors.response.use(
       if (!refreshPromise) {
         const refreshToken = localStorage.getItem('refreshToken')
         refreshPromise = axios
-          .post('/api/v1/auth/refresh', { refreshToken })
+          .post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/auth/refresh`, { refreshToken })
           .then(({ data }) => {
             const newToken = data.data.accessToken
             localStorage.setItem('accessToken', newToken)
