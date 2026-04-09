@@ -9,6 +9,8 @@ import com.aimentor.external.ai.dto.AiGenerateReportSummaryResponse;
 import com.aimentor.external.ai.dto.AiParseJobPostingRequest;
 import com.aimentor.external.ai.dto.AiParseJobPostingResponse;
 import com.aimentor.external.ai.dto.AiQuestionItem;
+import com.aimentor.external.ai.dto.AiInterviewChatRequest;
+import com.aimentor.external.ai.dto.AiInterviewChatResponse;
 import com.aimentor.external.ai.dto.AiResumeReviewRequest;
 import com.aimentor.external.ai.dto.AiResumeReviewResponse;
 import java.net.URI;
@@ -111,6 +113,26 @@ public class HttpAiIntegrationService implements AiIntegrationService {
                 response.get("positionTitle").asString(),
                 response.get("description").asString()
         );
+    }
+
+    @Override
+    public AiInterviewChatResponse chat(AiInterviewChatRequest request) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        List<Map<String, String>> messages = new ArrayList<>();
+        for (AiInterviewChatRequest.ChatMessage msg : request.messages()) {
+            Map<String, String> m = new LinkedHashMap<>();
+            m.put("role", msg.role());
+            m.put("content", msg.content());
+            messages.add(m);
+        }
+        body.put("messages", messages);
+        body.put("weakPoints", request.weakPoints() != null ? request.weakPoints() : "");
+        body.put("improvements", request.improvements() != null ? request.improvements() : "");
+        body.put("recommendedAnswer", request.recommendedAnswer() != null ? request.recommendedAnswer() : "");
+        body.put("positionTitle", request.positionTitle() != null ? request.positionTitle() : "");
+
+        JsonNode response = postJson("/interview/chat", body);
+        return new AiInterviewChatResponse(response.get("reply").asString());
     }
 
     @Override

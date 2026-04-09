@@ -5,6 +5,7 @@ from schemas.interview_schema import (
     AnalyzeAnswerRequest, AnalyzeAnswerResponse,
     ReportSummaryRequest, ReportSummaryResponse,
     ParseJobPostingRequest, ParseJobPostingResponse,
+    InterviewChatRequest, InterviewChatResponse,
 )
 from services import interview_service
 
@@ -89,3 +90,19 @@ def generate_report_summary(req: ReportSummaryRequest):
         return ReportSummaryResponse(**summary)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"리포트 생성 실패: {str(e)}")
+
+
+@router.post("/chat", response_model=InterviewChatResponse)
+def chat(req: InterviewChatRequest):
+    """면접 결과 기반 코칭 챗봇"""
+    try:
+        reply = interview_service.chat_with_coach(
+            messages=req.messages,
+            weak_points=req.weakPoints or "",
+            improvements=req.improvements or "",
+            recommended_answer=req.recommendedAnswer or "",
+            position_title=req.positionTitle or "",
+        )
+        return InterviewChatResponse(reply=reply)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"챗봇 응답 실패: {str(e)}")

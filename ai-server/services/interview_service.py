@@ -171,6 +171,32 @@ def generate_report_summary(session_title: str, position_title: str, answer_feed
     return json.loads(response.choices[0].message.content)
 
 
+def chat_with_coach(messages: list, weak_points: str, improvements: str, recommended_answer: str, position_title: str) -> str:
+    """면접 결과 기반 코칭 챗봇"""
+    system_prompt = f"""당신은 친절하고 전문적인 AI 면접 코치입니다.
+지원자의 면접 결과를 바탕으로 구체적이고 실질적인 조언을 제공합니다.
+
+[이번 면접 결과 요약]
+- 직무: {position_title or '미입력'}
+- 부족한 점: {weak_points or '없음'}
+- 개선 방향: {improvements or '없음'}
+- 모범 답안 예시: {recommended_answer or '없음'}
+
+위 면접 결과를 바탕으로 지원자의 질문에 친절하고 구체적으로 답변하세요.
+짧고 명확하게 핵심을 전달하되, 필요하면 예시를 들어 설명하세요."""
+
+    chat_messages = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        chat_messages.append({"role": msg.role, "content": msg.content})
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=chat_messages,
+        max_tokens=500,
+    )
+    return response.choices[0].message.content
+
+
 def parse_job_posting(url: str = None, content: str = None) -> dict:
     """채용공고 URL 또는 텍스트에서 회사명·직무·내용 추출"""
     if url:

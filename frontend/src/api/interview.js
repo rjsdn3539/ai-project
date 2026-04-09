@@ -17,3 +17,6 @@ export const endSession = (id) =>
 
 export const getFeedback = (id) =>
   api.get(`/api/v1/interviews/sessions/${id}/report`)
+
+export const chatWithCoach = (sessionId, body) =>
+  api.post(`/api/v1/interviews/sessions/${sessionId}/chat`, body)

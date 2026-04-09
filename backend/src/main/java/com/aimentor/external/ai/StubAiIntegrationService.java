@@ -85,6 +85,11 @@ public class StubAiIntegrationService implements AiIntegrationService {
     }
 
     @Override
+    public AiInterviewChatResponse chat(AiInterviewChatRequest request) {
+        return new AiInterviewChatResponse("안녕하세요! 면접 코치 AI입니다. 면접 결과에 대해 궁금한 점을 질문해주세요. (Stub)");
+    }
+
+    @Override
     public AiResumeReviewResponse reviewDocument(AiResumeReviewRequest request) {
         return new AiResumeReviewResponse(
                 "전반적으로 기본적인 구성을 갖추고 있습니다. (Stub)",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import * as interviewApi from '../api/interview'
 import Button from '../components/Button'
@@ -90,6 +90,121 @@ function FeedbackCard({ icon, title, content, accent }) {
 }
 
 const TIER_ORDER = { FREE: 0, STANDARD: 1, PRO: 2, PREMIUM: 3 }
+
+function CoachChat({ sessionId, feedback, positionTitle }) {
+  const [open, setOpen] = useState(false)
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: '안녕하세요! 면접 코치 AI입니다. 면접 결과에 대해 궁금한 점을 자유롭게 질문해주세요. 예) "왜 점수가 낮게 나왔나요?", "더 좋은 답변을 알려주세요"' }
+  ])
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, open])
+
+  const handleSend = async () => {
+    if (!input.trim() || sending) return
+    const userMsg = { role: 'user', content: input.trim() }
+    setMessages(prev => [...prev, userMsg])
+    setInput('')
+    setSending(true)
+    try {
+      const allMessages = [...messages, userMsg]
+      const { data } = await interviewApi.chatWithCoach(sessionId, {
+        messages: allMessages,
+        weakPoints: feedback?.weakPoints || '',
+        improvements: feedback?.improvements || '',
+        recommendedAnswer: feedback?.recommendedAnswer || '',
+        positionTitle: positionTitle || '',
+      })
+      setMessages(prev => [...prev, { role: 'assistant', content: data.data.reply }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'AI 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.' }])
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', padding: '14px', borderRadius: 12,
+          border: '1.5px solid var(--primary)', background: open ? 'var(--primary)' : 'var(--primary-light)',
+          color: open ? '#fff' : 'var(--primary)', fontWeight: 700, fontSize: 14,
+          cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}
+      >
+        <span>🤖</span>
+        {open ? 'AI 코치 닫기' : 'AI 코치에게 질문하기'}
+      </button>
+
+      {open && (
+        <div style={{
+          background: 'var(--surface)', borderRadius: 14, border: '1.5px solid var(--primary)',
+          marginTop: 8, overflow: 'hidden',
+        }}>
+          {/* 메시지 영역 */}
+          <div style={{ height: 320, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {messages.map((msg, i) => (
+              <div key={i} style={{
+                display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              }}>
+                <div style={{
+                  maxWidth: '80%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                  background: msg.role === 'user' ? 'var(--primary)' : 'var(--bg)',
+                  color: msg.role === 'user' ? '#fff' : 'var(--text)',
+                  fontSize: 13, lineHeight: 1.7,
+                  border: msg.role === 'assistant' ? '1px solid var(--border-light)' : 'none',
+                }}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', background: 'var(--bg)', border: '1px solid var(--border-light)', fontSize: 13, color: 'var(--text-muted)' }}>
+                  답변 작성 중...
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* 입력 영역 */}
+          <div style={{ padding: '12px', borderTop: '1px solid var(--border-light)', display: 'flex', gap: 8 }}>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              placeholder="질문을 입력하세요..."
+              disabled={sending}
+              style={{
+                flex: 1, padding: '10px 14px', borderRadius: 10,
+                border: '1.5px solid var(--border)', background: 'var(--bg)',
+                color: 'var(--text)', fontSize: 13, outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={sending || !input.trim()}
+              style={{
+                padding: '10px 18px', borderRadius: 10, border: 'none',
+                background: sending || !input.trim() ? 'var(--bg)' : 'var(--primary)',
+                color: sending || !input.trim() ? 'var(--text-muted)' : '#fff',
+                fontWeight: 700, fontSize: 13, cursor: sending || !input.trim() ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >전송</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function InterviewResultPage() {
   const { id } = useParams()
@@ -411,6 +526,8 @@ function InterviewResultPage() {
           </div>
         )
       })()}
+
+      <CoachChat sessionId={id} feedback={feedback} positionTitle={report?.positionTitle} />
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
         <Button variant="ghost" onClick={() => navigate('/interview/setup')}>다시 면접하기</Button>

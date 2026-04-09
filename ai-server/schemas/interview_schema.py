@@ -86,3 +86,20 @@ class ParseJobPostingResponse(BaseModel):
     companyName: str
     positionTitle: str
     description: str
+
+
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
+class InterviewChatRequest(BaseModel):
+    messages: List[ChatMessage]
+    weakPoints: Optional[str] = ""
+    improvements: Optional[str] = ""
+    recommendedAnswer: Optional[str] = ""
+    positionTitle: Optional[str] = ""
+
+
+class InterviewChatResponse(BaseModel):
+    reply: str

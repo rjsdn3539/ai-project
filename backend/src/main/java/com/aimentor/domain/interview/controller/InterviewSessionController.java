@@ -8,6 +8,9 @@ import com.aimentor.domain.interview.dto.response.InterviewAnswerResponse;
 import com.aimentor.domain.interview.dto.response.InterviewResultReportResponse;
 import com.aimentor.domain.interview.dto.response.InterviewSessionResponse;
 import com.aimentor.domain.interview.service.InterviewSessionService;
+import com.aimentor.external.ai.AiIntegrationService;
+import com.aimentor.external.ai.dto.AiInterviewChatRequest;
+import com.aimentor.external.ai.dto.AiInterviewChatResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class InterviewSessionController {
 
     private final InterviewSessionService interviewSessionService;
+    private final AiIntegrationService aiIntegrationService;
 
-    public InterviewSessionController(InterviewSessionService interviewSessionService) {
+    public InterviewSessionController(InterviewSessionService interviewSessionService, AiIntegrationService aiIntegrationService) {
         this.interviewSessionService = interviewSessionService;
+        this.aiIntegrationService = aiIntegrationService;
     }
 
     @GetMapping
@@ -73,5 +78,14 @@ public class InterviewSessionController {
             @PathVariable Long sessionId
     ) {
         return ApiResponse.success(interviewSessionService.getResultReport(authenticatedUser.userId(), sessionId));
+    }
+
+    @PostMapping("/{sessionId}/chat")
+    public ApiResponse<AiInterviewChatResponse> chat(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable Long sessionId,
+            @RequestBody AiInterviewChatRequest request
+    ) {
+        return ApiResponse.success(aiIntegrationService.chat(request));
     }
 }
