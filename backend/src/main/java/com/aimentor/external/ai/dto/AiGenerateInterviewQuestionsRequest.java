@@ -16,6 +16,8 @@ public record AiGenerateInterviewQuestionsRequest(
         String jobDescription,
 
         @Min(value = 1, message = "Question count must be at least 1.")
-        int questionCount
+        int questionCount,
+
+        String difficulty  // "EASY" | "MEDIUM" | "HARD"
 ) {
 }

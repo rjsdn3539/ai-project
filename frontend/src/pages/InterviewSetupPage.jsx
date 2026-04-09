@@ -725,6 +725,10 @@ function InterviewSetupPage() {
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>면접 시작하기</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>이력서와 채용공고를 선택하면 AI가 맞춤 면접 질문을 생성합니다.</p>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, background: 'var(--primary-light)', borderRadius: 8, padding: '5px 12px' }}>
+          <span style={{ fontSize: 13 }}>🎯</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>이전 면접 점수에 따라 난이도가 자동으로 조정됩니다</span>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>

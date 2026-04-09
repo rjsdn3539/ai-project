@@ -66,11 +66,19 @@ def generate_question(
     return json.loads(response.choices[0].message.content)
 
 
-def generate_batch_questions(position_title: str, resume_summary: str, job_description: str, question_count: int) -> list:
+DIFFICULTY_GUIDE = {
+    "EASY": "기초 개념 위주의 쉬운 질문을 생성하세요. 용어 정의, 기본 원리, 간단한 경험 위주로 출제하세요.",
+    "MEDIUM": "실무 경험과 개념 이해를 함께 평가하는 보통 난이도의 질문을 생성하세요.",
+    "HARD": "심화 개념, 트레이드오프 분석, 복잡한 문제 해결 경험을 묻는 어려운 질문을 생성하세요. 꼬리 질문이 예상되는 깊이 있는 질문으로 출제하세요.",
+}
+
+def generate_batch_questions(position_title: str, resume_summary: str, job_description: str, question_count: int, difficulty: str = "MEDIUM") -> list:
     """Java 백엔드용: 면접 질문 N개 한 번에 생성"""
+    difficulty_guide = DIFFICULTY_GUIDE.get(difficulty, DIFFICULTY_GUIDE["MEDIUM"])
     prompt = f"""[직무] {position_title}
 [이력서 요약] {resume_summary}
 [채용공고] {job_description}
+[난이도] {difficulty} - {difficulty_guide}
 
 위 정보를 바탕으로 실전 면접 질문 {question_count}개를 생성해주세요.
 반드시 아래 JSON 형식으로만 응답하세요:

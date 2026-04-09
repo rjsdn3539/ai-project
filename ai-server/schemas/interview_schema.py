@@ -39,6 +39,7 @@ class BatchQuestionsRequest(BaseModel):
     resumeSummary: Optional[str] = ""
     jobDescription: Optional[str] = ""
     questionCount: int = 5
+    difficulty: Optional[str] = "MEDIUM"  # "EASY" | "MEDIUM" | "HARD"
 
 
 class QuestionItem(BaseModel):

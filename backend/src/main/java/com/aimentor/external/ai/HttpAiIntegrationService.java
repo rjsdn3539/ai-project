@@ -48,6 +48,7 @@ public class HttpAiIntegrationService implements AiIntegrationService {
         body.put("resumeSummary", request.resumeSummary() != null ? request.resumeSummary() : "");
         body.put("jobDescription", request.jobDescription() != null ? request.jobDescription() : "");
         body.put("questionCount", request.questionCount());
+        body.put("difficulty", request.difficulty() != null ? request.difficulty() : "MEDIUM");
 
         JsonNode response = postJson("/interview/questions/batch", body);
 

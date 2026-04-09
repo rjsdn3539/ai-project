@@ -296,8 +296,18 @@ public class InterviewSessionService {
         interviewSession.assignFeedback(interviewFeedbackRepository.save(feedback));
     }
 
+    private String resolveDifficulty(Long userId) {
+        Double avg = interviewSessionRepository.findAverageOverallScoreByUserId(userId);
+        if (avg == null) return "MEDIUM";
+        if (avg < 50) return "EASY";
+        if (avg < 70) return "MEDIUM";
+        return "HARD";
+    }
+
     private List<AiQuestionItem> safelyGenerateInterviewQuestions(InterviewSession session, Integer requestedQuestionCount) {
         int questionCount = requestedQuestionCount == null ? DEFAULT_QUESTION_COUNT : requestedQuestionCount;
+        String difficulty = resolveDifficulty(session.getUser().getId());
+        log.info("면접 난이도 결정 - userId={}, difficulty={}", session.getUser().getId(), difficulty);
 
         try {
             AiGenerateInterviewQuestionsResponse response = aiIntegrationService.generateInterviewQuestions(
@@ -305,7 +315,8 @@ public class InterviewSessionService {
                             session.getPositionTitle(),
                             mergeContext(session.getResumeSnapshot(), session.getCoverLetterSnapshot()),
                             session.getJobPostingSnapshot(),
-                            questionCount
+                            questionCount,
+                            difficulty
                     )
             );
 

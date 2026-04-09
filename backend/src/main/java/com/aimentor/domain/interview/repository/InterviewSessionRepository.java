@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface InterviewSessionRepository extends JpaRepository<InterviewSession, Long> {
 
@@ -28,4 +29,7 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
     long countByStatus(InterviewSessionStatus status);
 
     long countByUserIdAndStartedAtAfter(Long userId, LocalDateTime after);
+
+    @Query("SELECT AVG(f.overallScore) FROM InterviewFeedback f WHERE f.interviewSession.user.id = :userId AND f.interviewSession.status = 'COMPLETED'")
+    Double findAverageOverallScoreByUserId(Long userId);
 }

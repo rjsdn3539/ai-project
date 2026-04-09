@@ -46,6 +46,7 @@ def generate_batch_questions(req: BatchQuestionsRequest):
             resume_summary=req.resumeSummary or "",
             job_description=req.jobDescription or "",
             question_count=req.questionCount,
+            difficulty=req.difficulty or "MEDIUM",
         )
         return BatchQuestionsResponse(questions=[QuestionItem(**q) for q in questions])
     except Exception as e:
