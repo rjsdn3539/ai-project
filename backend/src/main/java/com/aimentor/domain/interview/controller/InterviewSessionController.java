@@ -11,6 +11,7 @@ import com.aimentor.domain.interview.service.InterviewSessionService;
 import com.aimentor.external.ai.AiIntegrationService;
 import com.aimentor.external.ai.dto.AiInterviewChatRequest;
 import com.aimentor.external.ai.dto.AiInterviewChatResponse;
+import com.aimentor.external.ai.dto.AiLearningTopicsResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -78,6 +79,14 @@ public class InterviewSessionController {
             @PathVariable Long sessionId
     ) {
         return ApiResponse.success(interviewSessionService.getResultReport(authenticatedUser.userId(), sessionId));
+    }
+
+    @GetMapping("/{sessionId}/learning-topics")
+    public ApiResponse<AiLearningTopicsResponse> getLearningTopics(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable Long sessionId
+    ) {
+        return ApiResponse.success(interviewSessionService.getLearningTopics(authenticatedUser.userId(), sessionId));
     }
 
     @PostMapping("/{sessionId}/chat")

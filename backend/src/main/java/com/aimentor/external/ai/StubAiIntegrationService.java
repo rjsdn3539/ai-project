@@ -1,6 +1,9 @@
 package com.aimentor.external.ai;
 
 import com.aimentor.external.ai.dto.*;
+import com.aimentor.external.ai.dto.AiLearningTopicsRequest;
+import com.aimentor.external.ai.dto.AiLearningTopicsResponse;
+import com.aimentor.external.ai.dto.AiLearningTopicItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,6 +90,15 @@ public class StubAiIntegrationService implements AiIntegrationService {
     @Override
     public AiInterviewChatResponse chat(AiInterviewChatRequest request) {
         return new AiInterviewChatResponse("안녕하세요! 면접 코치 AI입니다. 면접 결과에 대해 궁금한 점을 질문해주세요. (Stub)");
+    }
+
+    @Override
+    public AiLearningTopicsResponse recommendLearningTopics(AiLearningTopicsRequest request) {
+        return new AiLearningTopicsResponse(List.of(
+                new AiLearningTopicItem("가비지 컬렉션 (Stub)", "자바", "답변에서 JVM 메모리 관리에 대한 이해가 부족했습니다. (Stub)"),
+                new AiLearningTopicItem("B-Tree 인덱스 (Stub)", "데이터베이스", "쿼리 최적화 관련 구체적인 설명이 부족했습니다. (Stub)"),
+                new AiLearningTopicItem("비동기 처리 (Stub)", "자바스크립트", "비동기 흐름 제어에 대한 설명이 모호했습니다. (Stub)")
+        ));
     }
 
     @Override

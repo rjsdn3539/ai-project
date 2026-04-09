@@ -13,6 +13,9 @@ import com.aimentor.external.ai.dto.AiInterviewChatRequest;
 import com.aimentor.external.ai.dto.AiInterviewChatResponse;
 import com.aimentor.external.ai.dto.AiResumeReviewRequest;
 import com.aimentor.external.ai.dto.AiResumeReviewResponse;
+import com.aimentor.external.ai.dto.AiLearningTopicsRequest;
+import com.aimentor.external.ai.dto.AiLearningTopicsResponse;
+import com.aimentor.external.ai.dto.AiLearningTopicItem;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -157,6 +160,26 @@ public class HttpAiIntegrationService implements AiIntegrationService {
                 improvements,
                 revisedSuggestions
         );
+    }
+
+    @Override
+    public AiLearningTopicsResponse recommendLearningTopics(AiLearningTopicsRequest request) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("weakPoints", request.weakPoints() != null ? request.weakPoints() : "");
+        body.put("improvements", request.improvements() != null ? request.improvements() : "");
+        body.put("positionTitle", request.positionTitle() != null ? request.positionTitle() : "");
+
+        JsonNode response = postJson("/interview/learning-topics", body);
+
+        List<AiLearningTopicItem> topics = new ArrayList<>();
+        for (JsonNode t : response.get("topics")) {
+            topics.add(new AiLearningTopicItem(
+                    t.get("topic").asString(),
+                    t.get("subject").asString(),
+                    t.get("reason").asString()
+            ));
+        }
+        return new AiLearningTopicsResponse(topics);
     }
 
     private JsonNode postJson(String path, Map<String, Object> body) {

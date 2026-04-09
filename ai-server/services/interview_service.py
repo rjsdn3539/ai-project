@@ -197,6 +197,38 @@ def chat_with_coach(messages: list, weak_points: str, improvements: str, recomme
     return response.choices[0].message.content
 
 
+def recommend_learning_topics(weak_points: str, improvements: str, position_title: str) -> list:
+    """면접 피드백 기반 맞춤 학습 개념 추천"""
+    prompt = f"""아래는 면접 피드백 결과입니다.
+
+[직무] {position_title or '미입력'}
+[부족한 점] {weak_points or '없음'}
+[개선 방향] {improvements or '없음'}
+
+면접 결과에서 드러난 부족한 개념을 분석하여, 지원자가 학습해야 할 구체적인 CS/개발 개념 3~5개를 추천하세요.
+
+반드시 아래 JSON 형식으로만 응답하세요:
+{{
+  "topics": [
+    {{
+      "topic": "구체적인 개념명 (예: 가비지 컬렉션, B-Tree 인덱스, 트랜잭션 격리 수준)",
+      "subject": "과목명 (자바/스프링/데이터베이스/자바스크립트/파이썬/C++/네트워크/운영체제/알고리즘 중 하나)",
+      "reason": "이 개념을 추천하는 이유를 면접 피드백과 연결하여 한 문장으로 설명"
+    }}
+  ]
+}}"""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "당신은 개발자 면접 코치입니다. 면접 피드백을 분석하여 지원자에게 필요한 구체적인 학습 개념을 추천합니다. 반드시 JSON 형식으로만 응답합니다."},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_object"},
+    )
+    return json.loads(response.choices[0].message.content).get("topics", [])
+
+
 def parse_job_posting(url: str = None, content: str = None) -> dict:
     """채용공고 URL 또는 텍스트에서 회사명·직무·내용 추출"""
     if url:

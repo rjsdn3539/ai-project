@@ -209,6 +209,17 @@ public class InterviewSessionService {
         return toSessionResponse(interviewSession);
     }
 
+    public com.aimentor.external.ai.dto.AiLearningTopicsResponse getLearningTopics(Long userId, Long sessionId) {
+        InterviewSession interviewSession = getOwnedSession(userId, sessionId);
+        InterviewFeedback feedback = interviewSession.getFeedback();
+        String weakPoints = feedback != null ? feedback.getWeakPoints() : "";
+        String improvements = feedback != null ? feedback.getImprovements() : "";
+        String positionTitle = interviewSession.getPositionTitle();
+        return aiIntegrationService.recommendLearningTopics(
+                new com.aimentor.external.ai.dto.AiLearningTopicsRequest(weakPoints, improvements, positionTitle)
+        );
+    }
+
     public InterviewResultReportResponse getResultReport(Long userId, Long sessionId) {
         InterviewSession interviewSession = getOwnedSession(userId, sessionId);
         User user = getUser(userId);

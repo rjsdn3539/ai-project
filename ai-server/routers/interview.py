@@ -6,6 +6,7 @@ from schemas.interview_schema import (
     ReportSummaryRequest, ReportSummaryResponse,
     ParseJobPostingRequest, ParseJobPostingResponse,
     InterviewChatRequest, InterviewChatResponse,
+    LearningTopicsRequest, LearningTopicsResponse, LearningTopicItem,
 )
 from services import interview_service
 
@@ -106,3 +107,17 @@ def chat(req: InterviewChatRequest):
         return InterviewChatResponse(reply=reply)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"챗봇 응답 실패: {str(e)}")
+
+
+@router.post("/learning-topics", response_model=LearningTopicsResponse)
+def recommend_learning_topics(req: LearningTopicsRequest):
+    """면접 피드백 기반 맞춤 학습 개념 추천"""
+    try:
+        topics = interview_service.recommend_learning_topics(
+            weak_points=req.weakPoints or "",
+            improvements=req.improvements or "",
+            position_title=req.positionTitle or "",
+        )
+        return LearningTopicsResponse(topics=[LearningTopicItem(**t) for t in topics])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"학습 추천 실패: {str(e)}")

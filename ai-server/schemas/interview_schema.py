@@ -103,3 +103,19 @@ class InterviewChatRequest(BaseModel):
 
 class InterviewChatResponse(BaseModel):
     reply: str
+
+
+class LearningTopicsRequest(BaseModel):
+    weakPoints: Optional[str] = ""
+    improvements: Optional[str] = ""
+    positionTitle: Optional[str] = ""
+
+
+class LearningTopicItem(BaseModel):
+    topic: str      # 구체적 개념 (예: "가비지 컬렉션", "B-Tree 인덱스")
+    subject: str    # 과목 (예: "자바", "데이터베이스")
+    reason: str     # 추천 이유 (한 문장)
+
+
+class LearningTopicsResponse(BaseModel):
+    topics: List[LearningTopicItem]

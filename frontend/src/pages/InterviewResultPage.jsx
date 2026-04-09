@@ -11,41 +11,10 @@ import {
   ensureAchievementStateLoaded,
 } from '../utils/achievements'
 
-const SUBJECT_KEYWORDS = {
-  '자바':        ['자바', 'java', 'jvm', 'oop', '객체지향', '컬렉션', '상속', '다형성', '인터페이스'],
-  '스프링':      ['스프링', 'spring', 'rest', 'api', '백엔드', 'mvc', 'di', 'ioc', '의존성'],
-  '데이터베이스': ['데이터베이스', 'db', 'sql', '쿼리', '인덱스', '트랜잭션', '정규화', '조인'],
-  '자바스크립트': ['자바스크립트', 'javascript', 'js', '프론트', 'dom', '비동기', 'promise', '클로저'],
-  '파이썬':      ['파이썬', 'python', '머신러닝', '데이터분석'],
-  'C++':         ['c++', 'cpp', '포인터', '메모리'],
-  '네트워크':    ['네트워크', 'http', 'tcp', 'ip', '프로토콜', 'dns', '소켓'],
-  '운영체제':    ['운영체제', 'os', '프로세스', '스레드', '스케줄링', '메모리 관리', '동기화'],
-  '알고리즘':    ['알고리즘', '자료구조', '정렬', '탐색', '동적 프로그래밍', '복잡도', '코딩테스트'],
-}
-
-const SUBJECT_META = {
-  '자바':        { icon: '☕', desc: 'OOP · JVM · 컬렉션' },
-  '스프링':      { icon: '🍃', desc: 'IoC · AOP · MVC' },
-  '데이터베이스': { icon: '🗄️', desc: 'SQL · 인덱스 · 트랜잭션' },
-  '자바스크립트': { icon: '🟨', desc: 'ES6+ · 비동기 · DOM' },
-  '파이썬':      { icon: '🐍', desc: '문법 · 라이브러리' },
-  'C++':         { icon: '⚡', desc: '포인터 · STL · 메모리' },
-  '네트워크':    { icon: '🌐', desc: 'HTTP · TCP/IP · DNS' },
-  '운영체제':    { icon: '🖥️', desc: '프로세스 · 메모리 · 스케줄링' },
-  '알고리즘':    { icon: '🧮', desc: '정렬 · 탐색 · 동적 프로그래밍' },
-}
-
-function getRecommendedSubjects(weakPoints, positionTitle) {
-  const text = `${weakPoints || ''} ${positionTitle || ''}`.toLowerCase()
-  const matched = Object.entries(SUBJECT_KEYWORDS)
-    .filter(([, keywords]) => keywords.some(kw => text.includes(kw.toLowerCase())))
-    .map(([subject]) => subject)
-  if (matched.length === 0) {
-    if (text.includes('백엔드') || text.includes('서버')) return ['자바', '스프링', '데이터베이스']
-    if (text.includes('프론트')) return ['자바스크립트', '네트워크']
-    return ['자바', '데이터베이스', '알고리즘']
-  }
-  return matched.slice(0, 3)
+const SUBJECT_ICON = {
+  '자바': '☕', '스프링': '🍃', '데이터베이스': '🗄️',
+  '자바스크립트': '🟨', '파이썬': '🐍', 'C++': '⚡',
+  '네트워크': '🌐', '운영체제': '🖥️', '알고리즘': '🧮',
 }
 
 function ScoreRing({ label, score, size = 80 }) {
@@ -215,6 +184,8 @@ function InterviewResultPage() {
   const [loading, setLoading] = useState(true)
   const [reviewOpen, setReviewOpen] = useState(null)
   const [bookmarked, setBookmarked] = useState({})
+  const [learningTopics, setLearningTopics] = useState(null)
+  const [topicsLoading, setTopicsLoading] = useState(false)
 
   const tier = user?.subscriptionTier || 'FREE'
   const canReview = TIER_ORDER[tier] >= TIER_ORDER['STANDARD']
@@ -240,7 +211,12 @@ function InterviewResultPage() {
           setBookmarked(bm)
         }
 
-
+        // Fetch AI-based learning topic recommendations
+        setTopicsLoading(true)
+        interviewApi.getLearningTopics(id)
+          .then(({ data: topicsData }) => setLearningTopics(topicsData.data?.topics || []))
+          .catch(() => setLearningTopics([]))
+          .finally(() => setTopicsLoading(false))
       })
       .catch(() => setFeedback({
         logicScore: 75, relevanceScore: 82, specificityScore: 68, overallScore: 75,
@@ -479,53 +455,59 @@ function InterviewResultPage() {
       </div>
 
       {/* 추천 학습 섹션 */}
-      {feedback.weakPoints && (() => {
-        const subjects = getRecommendedSubjects(feedback.weakPoints, report?.positionTitle)
-        return (
-          <div style={{
-            background: 'var(--surface)', borderRadius: 14, padding: '24px',
-            boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
-            marginTop: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 18 }}>📚</span>
-              <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', margin: 0 }}>부족한 부분 학습 추천</h2>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-              면접 결과를 분석해 아래 과목 학습을 추천합니다.
-            </p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {subjects.map(subject => {
-                const meta = SUBJECT_META[subject] || { icon: '📖', desc: '' }
-                return (
-                  <button
-                    key={subject}
-                    onClick={() => navigate('/learning/session', {
-                      state: { subject, difficulty: 'MEDIUM', count: 10 }
-                    })}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '12px 18px', borderRadius: 12, cursor: 'pointer',
-                      border: '1.5px solid #4f46e520',
-                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                      fontFamily: 'inherit', transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(79,70,229,0.2)'}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-                  >
-                    <span style={{ fontSize: 22 }}>{meta.icon}</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5', margin: 0 }}>{subject}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>{meta.desc}</p>
-                    </div>
-                    <span style={{ fontSize: 12, color: '#7c3aed', marginLeft: 4 }}>→</span>
-                  </button>
-                )
-              })}
-            </div>
+      <div style={{
+        background: 'var(--surface)', borderRadius: 14, padding: '24px',
+        boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
+        marginTop: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 18 }}>📚</span>
+          <h2 style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', margin: 0 }}>AI 맞춤 학습 추천</h2>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+          면접 피드백을 AI가 분석해 부족한 개념을 콕 집어 추천합니다.
+        </p>
+        {topicsLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: 13 }}>
+            🤖 AI가 학습 주제를 분석 중입니다...
           </div>
-        )
-      })()}
+        ) : learningTopics && learningTopics.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {learningTopics.map((item, i) => (
+              <button
+                key={i}
+                onClick={() => navigate('/learning/session', {
+                  state: { subject: item.subject, difficulty: 'MEDIUM', count: 10 }
+                })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 18px', borderRadius: 12, cursor: 'pointer',
+                  border: '1.5px solid #4f46e520',
+                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                  fontFamily: 'inherit', transition: 'all 0.2s', textAlign: 'left',
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(79,70,229,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+              >
+                <span style={{ fontSize: 24, flexShrink: 0 }}>{SUBJECT_ICON[item.subject] || '📖'}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5', margin: 0 }}>{item.topic}</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '3px 0 0', lineHeight: 1.5 }}>{item.reason}</p>
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: '#7c3aed', background: 'rgba(124,58,237,0.08)',
+                  borderRadius: 6, padding: '3px 8px', flexShrink: 0,
+                }}>{item.subject}</span>
+                <span style={{ fontSize: 12, color: '#7c3aed', flexShrink: 0 }}>→</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px' }}>
+            추천 학습 주제를 불러올 수 없습니다.
+          </p>
+        )}
+      </div>
 
       <CoachChat sessionId={id} feedback={feedback} positionTitle={report?.positionTitle} />
 

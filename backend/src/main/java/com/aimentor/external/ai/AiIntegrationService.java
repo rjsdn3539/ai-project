@@ -12,6 +12,8 @@ import com.aimentor.external.ai.dto.AiInterviewChatRequest;
 import com.aimentor.external.ai.dto.AiInterviewChatResponse;
 import com.aimentor.external.ai.dto.AiResumeReviewRequest;
 import com.aimentor.external.ai.dto.AiResumeReviewResponse;
+import com.aimentor.external.ai.dto.AiLearningTopicsRequest;
+import com.aimentor.external.ai.dto.AiLearningTopicsResponse;
 
 public interface AiIntegrationService {
 
@@ -26,4 +28,6 @@ public interface AiIntegrationService {
     AiResumeReviewResponse reviewDocument(AiResumeReviewRequest request);
 
     AiInterviewChatResponse chat(AiInterviewChatRequest request);
+
+    AiLearningTopicsResponse recommendLearningTopics(AiLearningTopicsRequest request);
 }

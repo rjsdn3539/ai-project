@@ -20,3 +20,6 @@ export const getFeedback = (id) =>
 
 export const chatWithCoach = (sessionId, body) =>
   api.post(`/api/v1/interviews/sessions/${sessionId}/chat`, body)
+
+export const getLearningTopics = (sessionId) =>
+  api.get(`/api/v1/interviews/sessions/${sessionId}/learning-topics`)
