@@ -3,7 +3,7 @@ load_dotenv()  # 반드시 다른 import보다 먼저 실행
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import stt, interview, learning
+from routers import stt, interview, learning, resume
 
 app = FastAPI(title="AI Interview Platform - AI Server", version="1.0.0")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(stt.router, prefix="/stt", tags=["STT"])
 app.include_router(interview.router, prefix="/interview", tags=["Interview"])
 app.include_router(learning.router, prefix="/learning", tags=["Learning"])
+app.include_router(resume.router, prefix="/resume", tags=["Resume"])
 
 
 @app.get("/health")

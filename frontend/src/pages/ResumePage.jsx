@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import * as profileApi from '../api/profile'
+import { reviewDocument } from '../api/profile'
 
 const PRIMARY = 'var(--primary)'
 const BORDER = 'var(--border)'
@@ -30,10 +31,60 @@ function SectionHeader({ title, count, onAdd }) {
   )
 }
 
-function DocCard({ title, content, sub, updatedAt, onDelete }) {
+function ReviewResult({ result, onClose }) {
+  return (
+    <div style={{
+      background: 'var(--bg)', borderRadius: 14, padding: '20px 22px',
+      border: '1.5px solid var(--primary)', marginTop: 12,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <span style={{ fontWeight: 800, fontSize: 14, color: PRIMARY }}>AI 첨삭 결과</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-muted)' }}>✕</button>
+      </div>
+
+      <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.7, marginBottom: 16, padding: '12px 14px', background: 'var(--surface)', borderRadius: 10 }}>
+        {result.overall}
+      </p>
+
+      <div style={{ marginBottom: 14 }}>
+        <p style={{ fontSize: 12, fontWeight: 800, color: '#16a34a', marginBottom: 8 }}>강점</p>
+        <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {result.strengths.map((s, i) => (
+            <li key={i} style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{s}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <p style={{ fontSize: 12, fontWeight: 800, color: '#dc2626', marginBottom: 8 }}>개선점</p>
+        <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {result.improvements.map((s, i) => (
+            <li key={i} style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{s}</li>
+          ))}
+        </ul>
+      </div>
+
+      {result.revisedSuggestions && result.revisedSuggestions.length > 0 && (
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', marginBottom: 8 }}>수정 제안</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {result.revisedSuggestions.map((s, i) => (
+              <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7, background: 'var(--surface)', borderRadius: 8, padding: '10px 12px' }}>
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DocCard({ title, content, sub, updatedAt, onDelete, onReview, reviewing, reviewResult, onCloseReview }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const preview = content ? content.replace(/\s+/g, ' ').trim().slice(0, 120) : ''
   const date = updatedAt ? new Date(updatedAt).toLocaleDateString('ko-KR') : ''
+  const hasContent = content && content.trim().length > 0
 
   return (
     <div style={{
@@ -49,29 +100,43 @@ function DocCard({ title, content, sub, updatedAt, onDelete }) {
             {preview ? preview + (content.length > 120 ? '…' : '') : '내용 없음'}
           </p>
         </div>
-        {!confirmDelete ? (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            style={{
-              background: 'none', border: '1.5px solid var(--border-error)', borderRadius: 8,
-              color: 'var(--danger)', padding: '5px 10px', fontSize: 12, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-            }}
-          >삭제</button>
-        ) : (
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexDirection: 'column', alignItems: 'flex-end' }}>
+          {hasContent && !confirmDelete && (
             <button
-              onClick={onDelete}
-              style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-            >확인</button>
+              onClick={onReview}
+              disabled={reviewing}
+              style={{
+                background: reviewing ? 'var(--bg)' : 'var(--primary-light)', border: `1.5px solid ${PRIMARY}`,
+                borderRadius: 8, color: PRIMARY, padding: '5px 10px', fontSize: 12, fontWeight: 700,
+                cursor: reviewing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}
+            >{reviewing ? '분석 중...' : 'AI 첨삭'}</button>
+          )}
+          {!confirmDelete ? (
             <button
-              onClick={() => setConfirmDelete(false)}
-              style={{ background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-secondary)' }}
-            >취소</button>
-          </div>
-        )}
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                background: 'none', border: '1.5px solid var(--border-error)', borderRadius: 8,
+                color: 'var(--danger)', padding: '5px 10px', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >삭제</button>
+          ) : (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={onDelete}
+                style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >확인</button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={{ background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-secondary)' }}
+              >취소</button>
+            </div>
+          )}
+        </div>
       </div>
       {date && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>수정일: {date}</p>}
+      {reviewResult && <ReviewResult result={reviewResult} onClose={onCloseReview} />}
     </div>
   )
 }
@@ -251,6 +316,8 @@ function ResumePage() {
   const [loading, setLoading] = useState(true)
   const [showAddResume, setShowAddResume] = useState(false)
   const [showAddCoverLetter, setShowAddCoverLetter] = useState(false)
+  const [reviewingId, setReviewingId] = useState(null)
+  const [reviewResults, setReviewResults] = useState({}) // { "resume-{id}" | "cover-{id}": result }
 
   const load = async () => {
     try {
@@ -284,6 +351,24 @@ function ResumePage() {
   const handleSavedCoverLetter = () => {
     setShowAddCoverLetter(false)
     load()
+  }
+
+  const handleReview = async (id, content, docType) => {
+    const key = `${docType}-${id}`
+    if (reviewingId) return
+    setReviewingId(key)
+    try {
+      const { data } = await reviewDocument(content, docType)
+      setReviewResults((prev) => ({ ...prev, [key]: data.data }))
+    } catch {
+      alert('AI 첨삭 요청에 실패했습니다. AI 서버 연결을 확인해주세요.')
+    } finally {
+      setReviewingId(null)
+    }
+  }
+
+  const handleCloseReview = (key) => {
+    setReviewResults((prev) => { const next = { ...prev }; delete next[key]; return next })
   }
 
   return (
@@ -321,6 +406,10 @@ function ResumePage() {
                     content={r.content}
                     updatedAt={r.updatedAt}
                     onDelete={() => handleDeleteResume(r.id)}
+                    onReview={() => handleReview(r.id, r.content, 'resume')}
+                    reviewing={reviewingId === `resume-${r.id}`}
+                    reviewResult={reviewResults[`resume-${r.id}`]}
+                    onCloseReview={() => handleCloseReview(`resume-${r.id}`)}
                   />
                 ))}
               </div>
@@ -350,6 +439,10 @@ function ResumePage() {
                     content={c.content}
                     updatedAt={c.updatedAt}
                     onDelete={() => handleDeleteCoverLetter(c.id)}
+                    onReview={() => handleReview(c.id, c.content, 'coverLetter')}
+                    reviewing={reviewingId === `coverLetter-${c.id}`}
+                    reviewResult={reviewResults[`coverLetter-${c.id}`]}
+                    onCloseReview={() => handleCloseReview(`coverLetter-${c.id}`)}
                   />
                 ))}
               </div>

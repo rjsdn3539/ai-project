@@ -7,15 +7,15 @@ import useAuthStore from '../store/authStore'
 const FREE_DAILY_LIMIT = 20
 
 const SUBJECTS = [
-  { id: '영어', label: '영어', icon: '🇺🇸', desc: '문법 · 독해 · 어휘' },
-  { id: '국사', label: '국사', icon: '📜', desc: '한국사 · 근현대사' },
-  { id: '일본어', label: '일본어', icon: '🇯🇵', desc: '히라가나 · 문법 · 어휘' },
-  { id: '자바스크립트', label: 'JavaScript', icon: '🟨', desc: 'ES6+ · DOM · 비동기' },
-  { id: 'C++', label: 'C++', icon: '⚡', desc: '포인터 · STL · 메모리' },
-  { id: '파이썬', label: 'Python', icon: '🐍', desc: '문법 · 자료형 · 라이브러리' },
-  { id: '데이터베이스', label: '데이터베이스', icon: '🗄️', desc: 'SQL · 인덱스 · 트랜잭션' },
   { id: '자바', label: 'Java', icon: '☕', desc: 'OOP · JVM · 컬렉션' },
   { id: '스프링', label: 'Spring', icon: '🍃', desc: 'IoC · AOP · MVC' },
+  { id: '데이터베이스', label: '데이터베이스', icon: '🗄️', desc: 'SQL · 인덱스 · 트랜잭션' },
+  { id: '자바스크립트', label: 'JavaScript', icon: '🟨', desc: 'ES6+ · DOM · 비동기' },
+  { id: '파이썬', label: 'Python', icon: '🐍', desc: '문법 · 자료형 · 라이브러리' },
+  { id: 'C++', label: 'C++', icon: '⚡', desc: '포인터 · STL · 메모리' },
+  { id: '네트워크', label: '네트워크', icon: '🌐', desc: 'HTTP · TCP/IP · DNS' },
+  { id: '운영체제', label: '운영체제', icon: '🖥️', desc: '프로세스 · 메모리 · 스케줄링' },
+  { id: '알고리즘', label: '알고리즘', icon: '🧮', desc: '정렬 · 탐색 · 동적 프로그래밍' },
 ]
 
 const DIFFICULTY_META = {

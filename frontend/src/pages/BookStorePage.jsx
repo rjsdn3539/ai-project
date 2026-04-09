@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as bookApi from '../api/book'
 import useCartStore from '../store/cartStore'
 import useAuthStore from '../store/authStore'
@@ -130,6 +130,7 @@ function BookStorePage() {
   const { addItem } = useCartStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const requireLogin = () => {
     if (!user) {
@@ -159,8 +160,14 @@ function BookStorePage() {
   }
 
   useEffect(() => {
+    const urlKeyword = searchParams.get('keyword') || ''
+    if (urlKeyword && !submittedKeyword) {
+      setKeyword(urlKeyword)
+      setSubmittedKeyword(urlKeyword)
+      return
+    }
     fetchBooks(submittedKeyword, page)
-  }, [submittedKeyword, page])
+  }, [submittedKeyword, page, searchParams])
 
   const handleSearch = (e) => {
     e.preventDefault()

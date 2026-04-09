@@ -9,6 +9,8 @@ import com.aimentor.external.ai.dto.AiGenerateReportSummaryResponse;
 import com.aimentor.external.ai.dto.AiParseJobPostingRequest;
 import com.aimentor.external.ai.dto.AiParseJobPostingResponse;
 import com.aimentor.external.ai.dto.AiQuestionItem;
+import com.aimentor.external.ai.dto.AiResumeReviewRequest;
+import com.aimentor.external.ai.dto.AiResumeReviewResponse;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -107,6 +109,30 @@ public class HttpAiIntegrationService implements AiIntegrationService {
                 response.get("companyName").asString(),
                 response.get("positionTitle").asString(),
                 response.get("description").asString()
+        );
+    }
+
+    @Override
+    public AiResumeReviewResponse reviewDocument(AiResumeReviewRequest request) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("content", request.content() != null ? request.content() : "");
+        body.put("documentType", request.documentType() != null ? request.documentType() : "resume");
+
+        JsonNode response = postJson("/resume/review", body);
+
+        List<String> strengths = new ArrayList<>();
+        List<String> improvements = new ArrayList<>();
+        List<String> revisedSuggestions = new ArrayList<>();
+
+        for (JsonNode item : response.get("strengths")) strengths.add(item.asString());
+        for (JsonNode item : response.get("improvements")) improvements.add(item.asString());
+        for (JsonNode item : response.get("revisedSuggestions")) revisedSuggestions.add(item.asString());
+
+        return new AiResumeReviewResponse(
+                response.get("overall").asString(),
+                strengths,
+                improvements,
+                revisedSuggestions
         );
     }
 

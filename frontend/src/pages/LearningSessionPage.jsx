@@ -143,25 +143,62 @@ function LearningLoadingScreen({ subject, difficulty }) {
   )
 }
 
+const COVER_COLORS = [
+  ['#4f46e5', '#7c3aed'], ['#0ea5e9', '#0284c7'], ['#16a34a', '#15803d'],
+  ['#d97706', '#b45309'], ['#dc2626', '#b91c1c'], ['#7c3aed', '#6d28d9'],
+  ['#0891b2', '#0e7490'], ['#059669', '#047857'],
+]
+
+function BookCover({ title, bookId, coverUrl }) {
+  const [imgError, setImgError] = useState(false)
+  const colorPair = COVER_COLORS[(bookId || 0) % COVER_COLORS.length]
+  const firstChar = (title || '?')[0]
+
+  if (coverUrl && !imgError) {
+    return (
+      <img
+        src={coverUrl}
+        alt={title}
+        onError={() => setImgError(true)}
+        style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+      />
+    )
+  }
+
+  return (
+    <div style={{
+      width: 52, height: 70, borderRadius: 6, flexShrink: 0,
+      background: `linear-gradient(135deg, ${colorPair[0]}, ${colorPair[1]})`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 4, boxShadow: '2px 2px 6px rgba(0,0,0,0.15)',
+    }}>
+      <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{firstChar}</span>
+      <div style={{ width: 28, height: 2, background: 'rgba(255,255,255,0.4)', borderRadius: 1 }} />
+      <div style={{ width: 20, height: 2, background: 'rgba(255,255,255,0.3)', borderRadius: 1 }} />
+    </div>
+  )
+}
+
 function ResultSummary({ problems, results, subject, onRetry }) {
   const [tab, setTab] = useState('all')
   const [books, setBooks] = useState([])
   const navigate = useNavigate()
 
+  const allItems = problems.map((p, i) => ({ ...p, ...(results[i] || {}) }))
+  const score = allItems.filter(x => x.isCorrect).length
+  const wrongCount = allItems.filter(x => !x.isCorrect).length
+  const pct = Math.round(score / problems.length * 100)
+  const needsBookRecommend = pct < 70
+
   useEffect(() => {
-    if (!subject) return
+    if (!subject || !needsBookRecommend) return
     bookApi.getBooks(subject, 0)
       .then(({ data }) => {
         const list = data.data?.content || data.data || []
         setBooks(list.slice(0, 4))
       })
       .catch(() => {})
-  }, [subject])
-
-  const allItems = problems.map((p, i) => ({ ...p, ...(results[i] || {}) }))
-  const score = allItems.filter(x => x.isCorrect).length
-  const wrongCount = allItems.filter(x => !x.isCorrect).length
-  const pct = Math.round(score / problems.length * 100)
+  }, [subject, needsBookRecommend])
 
   const displayed = tab === 'all' ? allItems
     : tab === 'correct' ? allItems.filter(x => x.isCorrect)
@@ -195,8 +232,8 @@ function ResultSummary({ problems, results, subject, onRetry }) {
         </div>
       </div>
 
-      {/* 추천 도서 섹션 */}
-      {books.length > 0 && (
+      {/* 추천 도서 섹션 - 점수 70% 미만일 때만 표시 */}
+      {needsBookRecommend && books.length > 0 && (
         <div style={{
           background: 'var(--surface)', borderRadius: 14, padding: '24px',
           boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)',
@@ -225,12 +262,7 @@ function ResultSummary({ problems, results, subject, onRetry }) {
                 onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
               >
-                {book.coverUrl ? (
-                  <img src={book.coverUrl} alt={book.title}
-                    style={{ width: 52, height: 70, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 52, height: 70, background: 'var(--border)', borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📚</div>
-                )}
+                <BookCover title={book.title} bookId={book.id} coverUrl={book.coverUrl} />
                 <div style={{ overflow: 'hidden' }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4,
                     overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
@@ -248,7 +280,7 @@ function ResultSummary({ problems, results, subject, onRetry }) {
             ))}
           </div>
           <button
-            onClick={() => navigate('/books', { state: { keyword: subject } })}
+            onClick={() => navigate(`/books?keyword=${encodeURIComponent(subject)}`)}
             style={{
               width: '100%', marginTop: 12, padding: '10px',
               background: 'none', border: '1.5px solid var(--border)',

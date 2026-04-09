@@ -18,7 +18,9 @@ const SUBJECT_KEYWORDS = {
   '자바스크립트': ['자바스크립트', 'javascript', 'js', '프론트', 'dom', '비동기', 'promise', '클로저'],
   '파이썬':      ['파이썬', 'python', '머신러닝', '데이터분석'],
   'C++':         ['c++', 'cpp', '포인터', '메모리'],
-  '영어':        ['영어', 'english', '의사소통', '커뮤니케이션'],
+  '네트워크':    ['네트워크', 'http', 'tcp', 'ip', '프로토콜', 'dns', '소켓'],
+  '운영체제':    ['운영체제', 'os', '프로세스', '스레드', '스케줄링', '메모리 관리', '동기화'],
+  '알고리즘':    ['알고리즘', '자료구조', '정렬', '탐색', '동적 프로그래밍', '복잡도', '코딩테스트'],
 }
 
 const SUBJECT_META = {
@@ -28,7 +30,9 @@ const SUBJECT_META = {
   '자바스크립트': { icon: '🟨', desc: 'ES6+ · 비동기 · DOM' },
   '파이썬':      { icon: '🐍', desc: '문법 · 라이브러리' },
   'C++':         { icon: '⚡', desc: '포인터 · STL · 메모리' },
-  '영어':        { icon: '🇺🇸', desc: '문법 · 독해 · 어휘' },
+  '네트워크':    { icon: '🌐', desc: 'HTTP · TCP/IP · DNS' },
+  '운영체제':    { icon: '🖥️', desc: '프로세스 · 메모리 · 스케줄링' },
+  '알고리즘':    { icon: '🧮', desc: '정렬 · 탐색 · 동적 프로그래밍' },
 }
 
 function getRecommendedSubjects(weakPoints, positionTitle) {
@@ -36,11 +40,10 @@ function getRecommendedSubjects(weakPoints, positionTitle) {
   const matched = Object.entries(SUBJECT_KEYWORDS)
     .filter(([, keywords]) => keywords.some(kw => text.includes(kw.toLowerCase())))
     .map(([subject]) => subject)
-  // 매칭 없으면 포지션 기반 기본값
   if (matched.length === 0) {
     if (text.includes('백엔드') || text.includes('서버')) return ['자바', '스프링', '데이터베이스']
-    if (text.includes('프론트')) return ['자바스크립트']
-    return ['자바', '데이터베이스']
+    if (text.includes('프론트')) return ['자바스크립트', '네트워크']
+    return ['자바', '데이터베이스', '알고리즘']
   }
   return matched.slice(0, 3)
 }

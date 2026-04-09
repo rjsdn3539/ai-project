@@ -84,6 +84,16 @@ public class StubAiIntegrationService implements AiIntegrationService {
         return new AiParseJobPostingResponse(defaultCompany, defaultPosition, defaultDescription);
     }
 
+    @Override
+    public AiResumeReviewResponse reviewDocument(AiResumeReviewRequest request) {
+        return new AiResumeReviewResponse(
+                "전반적으로 기본적인 구성을 갖추고 있습니다. (Stub)",
+                List.of("기술 스택이 명확하게 기재되어 있습니다. (Stub)", "프로젝트 경험이 포함되어 있습니다. (Stub)"),
+                List.of("수치와 성과를 추가해보세요. (Stub)", "두괄식으로 핵심을 먼저 작성하세요. (Stub)"),
+                List.of("수정 전: '담당했습니다' → 수정 후: '성능을 30% 개선했습니다' (Stub)")
+        );
+    }
+
     private String resolveProviderName() {
         return properties.provider() == null || properties.provider().isBlank()
                 ? "stub-ai"

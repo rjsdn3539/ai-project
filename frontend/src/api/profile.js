@@ -20,3 +20,5 @@ export const updateJobPosting = (id, body) => api.put(`/api/v1/profiles/job-post
 export const deleteJobPosting = (id) => api.delete(`/api/v1/profiles/job-postings/${id}`)
 
 export const parseJobPosting = ({ url, content }) => api.post('/api/v1/profiles/job-postings/parse-url', { url, content })
+
+export const reviewDocument = (content, documentType) => api.post('/api/v1/resume/review', { content, documentType })
