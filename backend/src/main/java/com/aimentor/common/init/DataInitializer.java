@@ -35,6 +35,7 @@ public class DataInitializer implements ApplicationRunner {
     private String adminName;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         if (userRepository.existsByEmail(adminEmail)) {
             userRepository.findByEmail(adminEmail).ifPresent(existing -> {
@@ -61,7 +62,6 @@ public class DataInitializer implements ApplicationRunner {
         initMockBook();
     }
 
-    @Transactional
     private void initMockBook() {
         bookRepository.deleteBySource("mock");
 
